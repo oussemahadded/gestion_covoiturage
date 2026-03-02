@@ -1,0 +1,78 @@
+// ==========================================
+// ENUMS (Pour sécuriser les données entrantes)
+// ==========================================
+Enum RoleUtilisateur {
+  admin
+  conducteur
+  passager
+}
+
+Enum StatutReservation {
+  en_attente   // Le passager demande, le conducteur doit valider
+  confirmee    // Le conducteur a accepté
+  annulee      // Le passager a annulé
+  refusee      // Le conducteur a refusé
+}
+
+// ==========================================
+// TABLES PRINCIPALES
+// ==========================================
+Table utilisateurs {
+  id int [pk, increment]
+  nom varchar [not null]
+  prenom varchar [not null]
+  email varchar [unique, not null]
+  mot_de_passe varchar [not null, note: 'Doit être crypté (ex: bcrypt)']
+  telephone varchar
+  role RoleUtilisateur [default: 'passager']
+  date_creation datetime [default: `now()`]
+}
+
+Table trajets {
+  id int [pk, increment]
+  conducteur_id int [ref: > utilisateurs.id]
+  ville_depart varchar [not null]
+  ville_arrivee varchar [not null]
+  date_depart date [not null]
+  heure_depart time [not null]
+  prix decimal(5,2) [not null]
+  places_total int [not null]
+  places_restantes int [not null]
+  description text
+  date_creation datetime [default: `now()`]
+  
+  // Index pour accélérer les recherches des passagers
+  Indexes {
+    (ville_depart, ville_arrivee, date_depart) [name: 'idx_recherche_trajet']
+  }
+}
+
+Table reservations {
+  id int [pk, increment]
+  trajet_id int [ref: > trajets.id]
+  passager_id int [ref: > utilisateurs.id]
+  date_reservation datetime [default: `now()`]
+  statut StatutReservation [default: 'en_attente']
+}
+
+// ==========================================
+// TABLES BONUS (Pour viser la meilleure note)
+// ==========================================
+Table avis {
+  id int [pk, increment]
+  trajet_id int [ref: > trajets.id]
+  passager_id int [ref: > utilisateurs.id]
+  note int [note: 'Doit être entre 1 et 5']
+  commentaire text
+  date_avis datetime [default: `now()`]
+}
+
+Table messages {
+  id int [pk, increment]
+  expediteur_id int [ref: > utilisateurs.id]
+  destinataire_id int [ref: > utilisateurs.id]
+  trajet_id int [ref: > trajets.id, note: 'Pour lier le chat à un trajet précis']
+  contenu text [not null]
+  date_envoi datetime [default: `now()`]
+  lu boolean [default: false]
+}
