@@ -1,0 +1,108 @@
+-- ==========================================
+-- 1. TABLE : utilisateurs
+-- ==========================================
+CREATE TABLE utilisateurs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    prenom VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    mot_de_passe VARCHAR(255) NOT NULL,
+    telephone VARCHAR(20),
+    role ENUM('admin', 'conducteur', 'passager') DEFAULT 'passager',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 2. TABLE : trajets
+-- ==========================================
+CREATE TABLE trajets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    conducteur_id INT NOT NULL,
+    ville_depart VARCHAR(100) NOT NULL,
+    ville_arrivee VARCHAR(100) NOT NULL,
+    date_depart DATE NOT NULL,
+    heure_depart TIME NOT NULL,
+    prix DECIMAL(5,2) NOT NULL,
+    places_total INT NOT NULL CHECK (places_total > 0),
+    places_restantes INT NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_trajet_conducteur FOREIGN KEY (conducteur_id) 
+        REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    CONSTRAINT chk_places CHECK (places_restantes >= 0 AND places_restantes <= places_total)
+);
+
+-- Index pour optimiser les recherches et les jointures
+CREATE INDEX idx_recherche_trajet ON trajets(ville_depart, ville_arrivee, date_depart);
+CREATE INDEX idx_trajet_conducteur ON trajets(conducteur_id);
+
+-- ==========================================
+-- 3. TABLE : reservations
+-- ==========================================
+CREATE TABLE reservations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trajet_id INT NOT NULL,
+    passager_id INT NOT NULL,
+    statut ENUM('en_attente', 'confirmee', 'annulee', 'refusee') DEFAULT 'en_attente',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_reservation_trajet FOREIGN KEY (trajet_id) 
+        REFERENCES trajets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_reservation_passager FOREIGN KEY (passager_id) 
+        REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    CONSTRAINT unique_reservation UNIQUE (trajet_id, passager_id) -- Empêche la double réservation
+);
+
+-- Index pour les performances
+CREATE INDEX idx_reservation_trajet ON reservations(trajet_id);
+CREATE INDEX idx_reservation_passager ON reservations(passager_id);
+
+-- ==========================================
+-- 4. TABLE : avis (Bonus)
+-- ==========================================
+CREATE TABLE avis (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    trajet_id INT NOT NULL,
+    passager_id INT NOT NULL,
+    note INT NOT NULL CHECK (note >= 1 AND note <= 5),
+    commentaire TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_avis_trajet FOREIGN KEY (trajet_id) 
+        REFERENCES trajets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_avis_passager FOREIGN KEY (passager_id) 
+        REFERENCES utilisateurs(id) ON DELETE CASCADE
+);
+
+-- Index pour les performances
+CREATE INDEX idx_avis_trajet ON avis(trajet_id);
+CREATE INDEX idx_avis_passager ON avis(passager_id);
+
+-- ==========================================
+-- 5. TABLE : messages (Bonus Chat)
+-- ==========================================
+CREATE TABLE messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    expediteur_id INT NOT NULL,
+    destinataire_id INT NOT NULL,
+    trajet_id INT,
+    contenu TEXT NOT NULL,
+    lu BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_message_expediteur FOREIGN KEY (expediteur_id) 
+        REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_message_destinataire FOREIGN KEY (destinataire_id) 
+        REFERENCES utilisateurs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_message_trajet FOREIGN KEY (trajet_id) 
+        REFERENCES trajets(id) ON DELETE SET NULL
+);
+
+-- Index pour accélérer l'affichage des conversations
+CREATE INDEX idx_messages_conversation ON messages(expediteur_id, destinataire_id);

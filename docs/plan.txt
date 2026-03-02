@@ -1,0 +1,302 @@
+🎯 1️⃣ VISION GLOBALE DU PROJET
+📌 Nom du projet
+
+Application Web de Gestion de Covoiturage
+
+Version simplifiée inspirée de :
+BlaBlaCar
+
+🏗 2️⃣ ARCHITECTURE TECHNIQUE
+🔹 Architecture : MVC simplifié
+
+Frontend → HTML + CSS + JS
+
+Backend → PHP
+
+Base de données → MySQL
+
+Serveur local → XAMPP
+
+📁 3️⃣ STRUCTURE COMPLÈTE DES DOSSIERS
+/covoiturage
+│
+├── /config
+│     └── database.php
+│
+├── /models
+│     ├── User.php
+│     ├── Trajet.php
+│     ├── Reservation.php
+│     ├── Avis.php
+│     └── Message.php
+│
+├── /controllers
+│     ├── AuthController.php
+│     ├── TrajetController.php
+│     ├── ReservationController.php
+│     ├── AvisController.php
+│     └── MessageController.php
+│
+├── /views
+│     ├── /auth
+│     ├── /trajets
+│     ├── /reservations
+│     ├── /admin
+│     └── /partials (header, footer)
+│
+├── /public
+│     ├── css/style.css
+│     ├── js/script.js
+│
+└── index.php
+🚀 4️⃣ MODULES À DÉVELOPPER
+🔐 MODULE 1 : Authentification
+
+Fonctionnalités :
+
+Inscription
+
+Connexion
+
+Déconnexion
+
+Session PHP
+
+Hash mot de passe (password_hash)
+
+Important :
+
+password_hash($password, PASSWORD_DEFAULT);
+password_verify($password, $hash);
+🚗 MODULE 2 : Gestion des trajets
+
+Conducteur peut :
+
+Ajouter trajet
+
+Modifier
+
+Supprimer
+
+Voir ses trajets
+
+Passager peut :
+
+Rechercher
+
+Voir détails
+
+📅 MODULE 3 : Réservations
+
+Réserver trajet
+
+Annuler
+
+Validation conducteur
+
+Diminuer places_restantes
+
+⚠ Important : vérifier disponibilité avant insertion.
+
+⭐ MODULE 4 : Avis
+
+Donner note 1–5
+
+Commentaire
+
+Affichage moyenne conducteur
+
+💬 MODULE 5 : Chat
+
+Envoyer message
+
+Afficher conversation
+
+Marquer comme lu
+
+🛠 MODULE 6 : Admin
+
+Liste utilisateurs
+
+Supprimer utilisateur
+
+Voir statistiques :
+
+Nombre trajets
+
+Nombre réservations
+
+Nombre utilisateurs
+
+📘 5️⃣ PLAN COMPLET DU RAPPORT
+🟦 INTRODUCTION
+
+Contexte du covoiturage
+
+Problématique
+
+Objectifs
+
+Structure du rapport
+
+🟦 CHAPITRE 1 : ANALYSE
+1.1 Présentation du domaine
+
+Définition covoiturage.
+
+1.2 Étude de l’existant
+
+Comparaison avec :
+BlaBlaCar
+
+1.3 Cahier des charges
+
+Fonctionnel :
+
+Auth
+
+Gestion trajets
+
+Réservation
+
+Avis
+
+Chat
+
+Non fonctionnel :
+
+Sécurité
+
+Performance
+
+Responsive
+
+🟦 CHAPITRE 2 : CONCEPTION
+2.1 Diagramme de cas d’utilisation
+
+Acteurs :
+
+Admin
+
+Conducteur
+
+Passager
+
+2.2 Diagramme de classes
+2.3 MCD
+2.4 Diagramme de séquence réservation
+2.5 Architecture MVC
+🟦 CHAPITRE 3 : RÉALISATION
+3.1 Technologies utilisées
+
+HTML
+
+CSS
+
+JS
+
+PHP
+
+MySQL
+
+3.2 Description base de données
+
+Mettre ton script SQL.
+
+3.3 Implémentation
+
+Expliquer :
+
+Auth
+
+Trajets
+
+Réservations
+
+Avis
+
+Chat
+
+🟦 CHAPITRE 4 : TESTS
+
+Test inscription
+
+Test réservation
+
+Test annulation
+
+Test erreur mot de passe
+
+🟦 CONCLUSION
+
+Résumé
+
+Difficultés
+
+Améliorations futures :
+
+Paiement
+
+Application mobile
+
+Géolocalisation
+
+🎤 6️⃣ PLAN DE SOUTENANCE (10–15 MIN)
+Slide 1 : Titre
+Slide 2 : Contexte
+Slide 3 : Objectifs
+Slide 4 : Analyse existant
+Slide 5 : Architecture technique
+Slide 6 : Diagramme de classes
+Slide 7 : Base de données
+Slide 8 : Démonstration
+
+Créer trajet → Réserver → Voir places diminuer
+
+Slide 9 : Difficultés
+Slide 10 : Conclusion
+🧠 7️⃣ QUESTIONS PIÈGES DU JURY
+
+Prépare ces réponses :
+
+Pourquoi PHP ?
+
+Pourquoi MySQL ?
+
+Pourquoi MVC ?
+
+Comment éviter injection SQL ?
+→ PDO + prepared statements
+
+Comment sécuriser mot de passe ?
+
+Comment éviter double réservation ?
+
+🔐 8️⃣ SÉCURITÉ À NE PAS OUBLIER
+
+Toujours utiliser :
+
+$stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE email = ?");
+$stmt->execute([$email]);
+
+Ne jamais faire :
+
+"SELECT * FROM users WHERE email = '$email'"
+📅 9️⃣ PLANNING CONSEILLÉ
+Semaine	Travail
+1	UML + Base
+2	Auth
+3	Trajets
+4	Réservations
+5	Avis + Chat
+6	Admin
+7	Tests + Rapport
+🏆 CE QUI DONNE 18–19/20
+
+✔ Base de données propre
+✔ Code organisé MVC
+✔ Utilisation PDO
+✔ password_hash
+✔ Démo fonctionnelle
+✔ Rapport clair
+✔ Réponses techniques maîtrisées
