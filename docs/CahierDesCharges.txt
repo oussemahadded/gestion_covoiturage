@@ -1,0 +1,283 @@
+📘 Cahier des Charges
+Projet : Application Web de Gestion de Covoiturage
+1️⃣ Présentation Générale
+1.1 Contexte
+
+Le covoiturage est une solution moderne permettant de :
+
+Réduire les coûts de transport
+
+Diminuer la pollution
+
+Faciliter les déplacements entre étudiants ou employés
+
+Ce projet consiste à développer une application web permettant de gérer les offres et demandes de covoiturage.
+
+1.2 Objectif du projet
+
+Développer une application web permettant :
+
+Aux conducteurs de publier des trajets
+
+Aux passagers de rechercher et réserver des trajets
+
+À l’administrateur de gérer la plateforme
+
+2️⃣ Périmètre du projet
+
+L’application contiendra :
+
+Une interface utilisateur
+
+Une base de données
+
+Un système d’authentification
+
+Un espace administrateur
+
+3️⃣ Étude des Acteurs
+👤 1. Visiteur
+
+Consulter les trajets
+
+S’inscrire
+
+Se connecter
+
+👤 2. Conducteur
+
+Publier un trajet
+
+Modifier un trajet
+
+Supprimer un trajet
+
+Voir les réservations
+
+👤 3. Passager
+
+Rechercher un trajet
+
+Réserver une place
+
+Annuler réservation
+
+Consulter historique
+
+👤 4. Administrateur
+
+Gérer utilisateurs
+
+Supprimer comptes
+
+Supprimer trajets
+
+Voir statistiques
+
+4️⃣ Fonctionnalités Détaillées
+🔐 Gestion des comptes
+
+Inscription
+
+Connexion
+
+Déconnexion
+
+Modification profil
+
+Mot de passe oublié
+
+🚗 Gestion des trajets
+
+Un conducteur peut :
+
+Ajouter :
+
+Ville départ
+
+Ville arrivée
+
+Date
+
+Heure
+
+Prix
+
+Nombre de places
+
+Modifier trajet
+
+Supprimer trajet
+
+🔎 Recherche de trajets
+
+Un passager peut :
+
+Rechercher par :
+
+Ville départ
+
+Ville arrivée
+
+Date
+
+Voir détails trajet
+
+Voir nombre de places restantes
+
+📅 Réservation
+
+Réserver une place
+
+Annuler réservation
+
+Confirmation automatique
+
+📊 Administration
+
+Dashboard
+
+Liste utilisateurs
+
+Liste trajets
+
+Statistiques :
+
+Nombre trajets
+
+Nombre utilisateurs
+
+Nombre réservations
+
+5️⃣ Modélisation Base de Données
+📌 Tables principales
+Utilisateur
+
+id
+
+nom
+
+prenom
+
+email
+
+mot_de_passe
+
+role (admin / conducteur / passager)
+
+telephone
+
+Trajet
+
+id
+
+conducteur_id (clé étrangère)
+
+ville_depart
+
+ville_arrivee
+
+date
+
+heure
+
+prix
+
+places_total
+
+places_restantes
+
+Reservation
+
+id
+
+trajet_id
+
+passager_id
+
+date_reservation
+
+statut (confirmée / annulée)
+
+6️⃣ Technologies Proposées
+
+Tu peux choisir selon ton niveau :
+
+Option simple :
+
+HTML
+
+CSS
+
+JavaScript
+
+PHP
+
+MySQL
+
+Option moderne :
+
+Frontend : React ou Vue
+
+Backend : Node.js / Express
+
+Base de données : MySQL ou MongoDB
+
+7️⃣ Exigences Non Fonctionnelles
+
+Interface simple et claire
+
+Sécurité (mot de passe crypté)
+
+Responsive design (mobile + PC)
+
+Temps de réponse rapide
+
+8️⃣ Diagrammes à Préparer (Important pour PFA)
+
+Tu dois préparer :
+
+Diagramme de cas d’utilisation
+
+Diagramme de classes
+
+Diagramme de séquence
+
+MCD (Modèle Conceptuel de Données)
+
+Diagramme de déploiement
+
+9️⃣ Planning Prévisionnel
+Phase	Durée
+Analyse	1 semaine
+Conception UML	1 semaine
+Développement	3 semaines
+Tests	1 semaine
+Rédaction rapport	1 semaine
+🔟 Améliorations (Bonus pour avoir bonne note ⭐)
+
+Système d’évaluation conducteurs ⭐
+
+Chat entre passager et conducteur ⭐
+
+Paiement en ligne ⭐
+
+Carte avec Google Maps ⭐
+
+Notification email ⭐
+
+🎯 Conclusion
+
+Ce projet permet de travailler :
+
+Base de données
+
+Backend
+
+Frontend
+
+UML
+
+Sécurité
+
+Gestion complète d’un système web
