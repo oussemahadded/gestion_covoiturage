@@ -1,0 +1,47 @@
+<?php $pageTitle = 'Connexion'; require_once ROOT_PATH . '/views/layouts/header.php'; ?>
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <span class="auth-icon">🔑</span>
+            <h1>Connexion</h1>
+            <p>Bienvenue sur CHAYA3NI ! Connectez-vous à votre compte.</p>
+        </div>
+
+        <?php
+        $errors = $_SESSION['form_errors'] ?? [];
+        unset($_SESSION['form_errors']);
+        ?>
+        <?php if (!empty($errors)): ?>
+        <ul class="error-list">
+            <?php foreach ($errors as $e): ?>
+                <li><?= htmlspecialchars($e) ?></li>
+            <?php endforeach; ?>
+        </ul>
+        <?php endif; ?>
+
+        <form action="<?= BASE_URL ?>/index.php?page=auth&action=login" method="POST" class="auth-form" novalidate>
+            <div class="form-group">
+                <label for="email">Adresse email</label>
+                <input type="email" id="email" name="email" placeholder="vous@exemple.tn"
+                       required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="mot_de_passe">Mot de passe</label>
+                <div class="input-password">
+                    <input type="password" id="mot_de_passe" name="mot_de_passe"
+                           placeholder="••••••••" required autocomplete="current-password">
+                    <button type="button" class="toggle-pwd" onclick="togglePwd('mot_de_passe')">👁</button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+        </form>
+
+        <p class="auth-switch">
+            Pas encore de compte ?
+            <a href="<?= BASE_URL ?>/index.php?page=auth&action=register">S'inscrire gratuitement</a>
+        </p>
+    </div>
+</div>
+
+<?php require_once ROOT_PATH . '/views/layouts/footer.php'; ?>
