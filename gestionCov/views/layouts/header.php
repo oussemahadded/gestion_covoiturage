@@ -32,8 +32,9 @@ if ($currentUser) {
 <nav class="navbar">
     <div class="nav-container">
         <a href="<?= BASE_URL ?>/index.php" class="nav-brand">
-            <span class="brand-icon">🇹🇳</span>
+            
             <span class="brand-name">CHAYA3NI</span>
+                
         </a>
 
         <button class="nav-toggle" id="navToggle" aria-label="Menu">
