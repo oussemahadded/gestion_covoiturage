@@ -1,0 +1,85 @@
+Enum RoleUtilisateur {
+  admin
+  conducteur
+  etudiant
+  professeur
+}
+
+Enum StatutReservation {
+  en_attente
+  confirmee
+  annulee
+  refusee
+}
+
+Table utilisateurs {
+  id int [pk, increment]
+  nom varchar(100)
+  prenom varchar(100)
+  email varchar(255) [unique, note: 'etudiant/professeur: @sesame.com.tn obligatoire; conducteur: email valide']
+  mot_de_passe varchar(255)
+  telephone varchar(20)
+  role RoleUtilisateur [default: 'etudiant']
+  created_at datetime
+  updated_at datetime
+}
+
+Table trajets {
+  id int [pk, increment]
+  conducteur_id int [ref: > utilisateurs.id, note: 'Compte conducteur qui propose ce trajet']
+  ville_depart varchar(100)
+  ville_arrivee varchar(100)
+  date_depart date
+  heure_depart time
+  prix decimal(5,2)
+  places_total int
+  places_restantes int
+  description text
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (ville_depart, ville_arrivee, date_depart) [name: 'idx_recherche_trajet']
+    conducteur_id [name: 'idx_trajet_conducteur']
+  }
+}
+
+Table reservations {
+  id int [pk, increment]
+  trajet_id int [ref: > trajets.id]
+  passager_id int [ref: > utilisateurs.id, note: 'Etudiant ou professeur qui reserve ce trajet']
+  statut StatutReservation [default: 'en_attente']
+  created_at datetime
+  updated_at datetime
+
+  indexes {
+    (trajet_id, passager_id) [unique, name: 'unique_reservation']
+    trajet_id [name: 'idx_reservation_trajet']
+    passager_id [name: 'idx_reservation_passager']
+  }
+}
+
+Table avis {
+  id int [pk, increment]
+  trajet_id int [ref: > trajets.id]
+  passager_id int [ref: > utilisateurs.id, note: 'Auteur etudiant/professeur avec reservation confirmee']
+  note int
+  commentaire text
+  created_at datetime
+  updated_at datetime
+}
+
+Table messages {
+  id int [pk, increment]
+  expediteur_id int [ref: > utilisateurs.id]
+  destinataire_id int [ref: > utilisateurs.id]
+  trajet_id int [ref: > trajets.id, null]
+  contenu text
+  lu boolean
+  created_at datetime
+  updated_at datetime
+}
+
+// passager n'est plus un role de compte.
+// Il est remplace par etudiant et professeur.
+// conducteur reste un role de compte.

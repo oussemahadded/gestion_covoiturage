@@ -1,0 +1,36 @@
+CAHIER DES CHARGES - CHAYA3NI
+
+1. Objectif
+
+Plateforme de covoiturage autour de la communauté Sesame.
+
+2. Rôles de compte
+
+- admin : faculté / administration
+- conducteur : propose et gère ses trajets
+- etudiant : étudiant passager
+- professeur : professeur passager
+
+`passager` n'est plus un rôle de compte. Il est remplacé par `etudiant` et `professeur`.
+`conducteur` reste un rôle de compte.
+
+3. Inscription publique
+
+- rôles autorisés : conducteur, etudiant, professeur
+- admin interdit via formulaire public
+- email etudiant/professeur : doit finir par `@sesame.com.tn`
+- email conducteur : email valide uniquement
+
+4. Autorisations fonctionnelles
+
+- `admin` : dashboard + gestion utilisateurs/trajets
+- `conducteur` : `create/myTrajets/edit/delete` + demandes reçues
+- `etudiant`/`professeur` : réservation, annulation, avis éligible
+- messages : tous les comptes authentifiés
+
+5. Sécurité
+
+- PDO + requêtes préparées
+- `password_hash()` / `password_verify()`
+- `session_regenerate_id(true)` à la connexion
+- contrôles serveur des rôles et de la propriété
