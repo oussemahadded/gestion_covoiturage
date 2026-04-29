@@ -282,6 +282,17 @@ class AdminController
         require_once ROOT_PATH . '/views/admin/traceability.php';
     }
 
+    public function finances(): void
+    {
+        $financeStats = $this->resModel->getDeclaredRevenueStats();
+        $revenueByConducteur = $this->resModel->getRevenueByConducteur();
+        $revenueByWeek = $this->resModel->getRevenueByWeek();
+        $revenueByMonth = $this->resModel->getRevenueByMonth();
+        $completedTripRows = $this->resModel->getCompletedTripsFinancialRows();
+
+        require_once ROOT_PATH . '/views/admin/finances.php';
+    }
+
     public function tripDetails(): void
     {
         $tripId = (int) ($_GET['id'] ?? 0);
@@ -322,4 +333,3 @@ class AdminController
         require_once ROOT_PATH . '/views/admin/reservation_details.php';
     }
 }
-

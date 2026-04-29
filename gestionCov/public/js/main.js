@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initConfirmForms();
     initDateFrInputs();
     initTripDirectionSelector();
+    initTripMap();
+    initReservationPointPicker();
 });
 
 function initMobileNav() {
@@ -335,5 +337,633 @@ function initTripDirectionSelector() {
                 refreshSelectedStyle();
             });
         });
+    });
+}
+
+function initTripMap() {
+    const mapEl = document.getElementById('tripMap');
+    if (!mapEl || typeof window.L === 'undefined') {
+        initTripPreviewMaps();
+        return;
+    }
+
+    const sesameLat = parseFloat(mapEl.dataset.sesameLat || '0');
+    const sesameLng = parseFloat(mapEl.dataset.sesameLng || '0');
+    const osrmUrl = mapEl.dataset.osrmUrl || '';
+
+    const pointLatInput = document.getElementById('point_lat');
+    const pointLngInput = document.getElementById('point_lng');
+    const distanceInput = document.getElementById('distance_km');
+    const durationInput = document.getElementById('duree_minutes');
+    const routeGeometryInput = document.getElementById('route_geometry');
+    const routeProviderInput = document.getElementById('route_provider');
+    const distanceValue = document.getElementById('distanceValue');
+    const durationValue = document.getElementById('durationValue');
+    const routeWarning = document.getElementById('routeWarning');
+    const prixParKmInput = document.getElementById('prix_par_km');
+    const prixInput = document.getElementById('prix');
+    const suggestedPriceValue = document.getElementById('suggestedPriceValue');
+    const applySuggestedBtn = document.getElementById('applySuggestedPrice');
+
+    let priceManuallyEdited = false;
+    let initialSuggestedSet = false;
+
+    const map = L.map(mapEl, { zoomControl: true }).setView([sesameLat, sesameLng], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
+
+    const sesameMarker = L.marker([sesameLat, sesameLng], { title: 'Sesame' }).addTo(map);
+
+    let selectedLat = pointLatInput?.value ? parseFloat(pointLatInput.value) : null;
+    let selectedLng = pointLngInput?.value ? parseFloat(pointLngInput.value) : null;
+    let hasPoint = Number.isFinite(selectedLat) && Number.isFinite(selectedLng);
+
+    let pointMarker = L.marker(
+        [hasPoint ? selectedLat : sesameLat, hasPoint ? selectedLng : sesameLng],
+        { draggable: true }
+    ).addTo(map);
+
+    let routeLayer = null;
+
+    const getDirection = () => {
+        const checked = document.querySelector('input[type="radio"][name="direction"]:checked');
+        return checked ? checked.value : 'vers_sesame';
+    };
+
+    const updateHiddenPoint = (lat, lng) => {
+        if (pointLatInput) pointLatInput.value = String(lat);
+        if (pointLngInput) pointLngInput.value = String(lng);
+    };
+
+    const updateHiddenRoute = (distanceKm, durationMinutes, provider, geometry) => {
+        if (distanceInput) distanceInput.value = distanceKm !== null ? distanceKm.toFixed(2) : '';
+        if (durationInput) durationInput.value = durationMinutes !== null ? String(durationMinutes) : '';
+        if (routeProviderInput) routeProviderInput.value = provider || '';
+        if (routeGeometryInput) routeGeometryInput.value = geometry ? serializeRouteGeometry(geometry) : '';
+    };
+
+    const updateRoute = async () => {
+        if (!hasPoint || !Number.isFinite(selectedLat) || !Number.isFinite(selectedLng)) {
+            updateRouteSummary(null, null, null, distanceValue, durationValue, routeWarning);
+            updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
+                initialSuggestedSet = true;
+            });
+            return;
+        }
+
+        const direction = getDirection();
+        const startLat = direction === 'vers_sesame' ? selectedLat : sesameLat;
+        const startLng = direction === 'vers_sesame' ? selectedLng : sesameLng;
+        const endLat = direction === 'vers_sesame' ? sesameLat : selectedLat;
+        const endLng = direction === 'vers_sesame' ? sesameLng : selectedLng;
+
+        let routeData = null;
+        if (osrmUrl) {
+            try {
+                routeData = await calculateRouteWithOSRM(startLat, startLng, endLat, endLng, osrmUrl);
+            } catch (error) {
+                routeData = null;
+            }
+        }
+
+        if (routeData) {
+            drawRouteLine(routeData.geometry, map, (layer) => { routeLayer = layer; });
+            updateRouteSummary(routeData.distanceKm, routeData.durationMinutes, 'osrm', distanceValue, durationValue, routeWarning);
+            updateHiddenRoute(routeData.distanceKm, routeData.durationMinutes, 'osrm', routeData.geometry);
+        } else {
+            const haversineKm = calculateHaversineDistanceKm(startLat, startLng, endLat, endLng);
+            const fallbackGeometry = {
+                type: 'LineString',
+                coordinates: [
+                    [startLng, startLat],
+                    [endLng, endLat],
+                ],
+            };
+            drawRouteLine(fallbackGeometry, map, (layer) => { routeLayer = layer; });
+            updateRouteSummary(haversineKm, null, 'haversine_fallback', distanceValue, durationValue, routeWarning);
+            updateHiddenRoute(haversineKm, null, 'haversine_fallback', fallbackGeometry);
+        }
+
+        updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
+            if (!initialSuggestedSet) {
+                const suggested = parseFloat(suggestedPriceValue?.textContent || '');
+                const current = prixInput && prixInput.value !== '' ? parseFloat(prixInput.value) : null;
+                if (Number.isFinite(suggested) && Number.isFinite(current) && Math.abs(suggested - current) > 0.01) {
+                    priceManuallyEdited = true;
+                }
+                initialSuggestedSet = true;
+            }
+        });
+    };
+
+    const existingGeometryRaw = routeGeometryInput?.value || '';
+    if (existingGeometryRaw) {
+        try {
+            const geometry = JSON.parse(existingGeometryRaw);
+            drawRouteLine(geometry, map, (layer) => { routeLayer = layer; });
+            const distanceKm = distanceInput?.value ? parseFloat(distanceInput.value) : null;
+            const durationMinutes = durationInput?.value ? parseInt(durationInput.value, 10) : null;
+            const provider = routeProviderInput?.value || 'osrm';
+            updateRouteSummary(distanceKm, Number.isFinite(durationMinutes) ? durationMinutes : null, provider, distanceValue, durationValue, routeWarning);
+        } catch (error) {
+            // Ignore invalid geometry on load.
+        }
+    }
+
+    if (hasPoint) {
+        map.fitBounds(L.latLngBounds([[sesameLat, sesameLng], [selectedLat, selectedLng]]), { padding: [20, 20] });
+    }
+
+    pointMarker.on('dragend', (event) => {
+        const { lat, lng } = event.target.getLatLng();
+        selectedLat = lat;
+        selectedLng = lng;
+        hasPoint = true;
+        updateHiddenPoint(lat, lng);
+        updateRoute();
+    });
+
+    map.on('click', (event) => {
+        const { lat, lng } = event.latlng;
+        selectedLat = lat;
+        selectedLng = lng;
+        hasPoint = true;
+        pointMarker.setLatLng([lat, lng]);
+        updateHiddenPoint(lat, lng);
+        updateRoute();
+    });
+
+    document.querySelectorAll('input[type="radio"][name="direction"]').forEach((radio) => {
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
+            updateRoute();
+        });
+    });
+
+    if (prixInput) {
+        prixInput.addEventListener('input', () => {
+            priceManuallyEdited = true;
+        });
+    }
+
+    if (prixParKmInput) {
+        prixParKmInput.addEventListener('input', () => {
+            updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
+                initialSuggestedSet = true;
+            });
+        });
+    }
+
+    if (applySuggestedBtn) {
+        applySuggestedBtn.addEventListener('click', () => {
+            priceManuallyEdited = false;
+            applySuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue);
+        });
+    }
+
+    if (hasPoint && !existingGeometryRaw) {
+        updateRoute();
+    } else {
+        updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
+            initialSuggestedSet = true;
+        });
+    }
+
+    initTripPreviewMaps();
+}
+
+function initReservationPointPicker() {
+    const mapEl = document.getElementById('reservationMap');
+    if (!mapEl || typeof window.L === 'undefined') return;
+
+    const routeRaw = mapEl.dataset.routeGeometry || '';
+    if (!routeRaw) return;
+
+    let geometry = null;
+    try {
+        geometry = JSON.parse(routeRaw);
+    } catch (error) {
+        return;
+    }
+
+    const routeCoords = getRouteCoordinatesFromGeometry(geometry);
+    if (routeCoords.length < 2) return;
+
+    const direction = mapEl.dataset.direction || 'vers_sesame';
+    const prixParKm = parseFloat(mapEl.dataset.prixParKm || '0');
+    const totalDuration = parseInt(mapEl.dataset.totalDuration || '', 10);
+
+    const warningEl = document.getElementById('reservationPointWarning');
+    const pointValueEl = document.getElementById('reservationPointValue');
+    const distanceValueEl = document.getElementById('reservationDistanceValue');
+    const durationValueEl = document.getElementById('reservationDurationValue');
+    const priceValueEl = document.getElementById('reservationPriceValue');
+    const submitBtn = document.getElementById('reservationSubmitBtn');
+
+    const pointLatInput = document.getElementById('reservation_point_lat');
+    const pointLngInput = document.getElementById('reservation_point_lng');
+    const distanceInput = document.getElementById('reservation_distance_km');
+    const durationInput = document.getElementById('reservation_duree_minutes');
+    const priceInput = document.getElementById('reservation_price');
+    const pointTypeInput = document.getElementById('reservation_point_type');
+
+    const map = L.map(mapEl, { zoomControl: true }).setView([routeCoords[0].lat, routeCoords[0].lng], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
+
+    const polyline = L.polyline(routeCoords, {
+        color: '#C0392B',
+        weight: 4,
+        opacity: 0.9,
+    }).addTo(map);
+    map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+
+    const startMarker = L.circleMarker(routeCoords[0], {
+        radius: 5,
+        color: '#C0392B',
+        weight: 2,
+        fillColor: '#C0392B',
+        fillOpacity: 0.9,
+    }).addTo(map);
+
+    const endMarker = L.circleMarker(routeCoords[routeCoords.length - 1], {
+        radius: 5,
+        color: '#E67E22',
+        weight: 2,
+        fillColor: '#E67E22',
+        fillOpacity: 0.9,
+    }).addTo(map);
+
+    let selectionMarker = null;
+    const totalDistanceMeters = computeRouteDistanceAlongPolyline(routeCoords, routeCoords.length - 2, 1);
+
+    enableBookingIfValid(submitBtn, false);
+
+    map.on('click', (event) => {
+        const nearest = findNearestPointOnRoute(event.latlng, routeCoords);
+        if (!nearest) return;
+
+        if (nearest.distanceMeters > 500) {
+            if (warningEl) {
+                warningEl.textContent = 'Veuillez choisir un point situé sur le circuit proposé.';
+                warningEl.style.display = 'block';
+            }
+            updateReservationPointSummary(pointValueEl, distanceValueEl, durationValueEl, priceValueEl, null);
+            enableBookingIfValid(submitBtn, false);
+            return;
+        }
+
+        if (warningEl) {
+            warningEl.textContent = '';
+            warningEl.style.display = 'none';
+        }
+
+        const distanceToPointMeters = computeRouteDistanceAlongPolyline(routeCoords, nearest.segmentIndex, nearest.t);
+        const chargedMeters = direction === 'vers_sesame'
+            ? Math.max(0, totalDistanceMeters - distanceToPointMeters)
+            : Math.max(0, distanceToPointMeters);
+
+        const chargedKm = chargedMeters / 1000;
+        const durationMinutes = computeRouteDurationProportionally(totalDuration, chargedMeters, totalDistanceMeters);
+        const priceEstimate = Math.round(chargedKm * prixParKm * 100) / 100;
+
+        if (!selectionMarker) {
+            selectionMarker = L.circleMarker([nearest.lat, nearest.lng], {
+                radius: 6,
+                color: '#1D4ED8',
+                weight: 2,
+                fillColor: '#3B82F6',
+                fillOpacity: 0.9,
+            }).addTo(map);
+        } else {
+            selectionMarker.setLatLng([nearest.lat, nearest.lng]);
+        }
+
+        if (pointLatInput) pointLatInput.value = nearest.lat.toFixed(7);
+        if (pointLngInput) pointLngInput.value = nearest.lng.toFixed(7);
+        if (distanceInput) distanceInput.value = chargedKm.toFixed(2);
+        if (durationInput) durationInput.value = durationMinutes !== null ? String(durationMinutes) : '';
+        if (priceInput) priceInput.value = priceEstimate.toFixed(2);
+        if (pointTypeInput && !pointTypeInput.value) {
+            pointTypeInput.value = direction === 'vers_sesame' ? 'prise_en_charge' : 'depose';
+        }
+
+        updateReservationPointSummary(
+            pointValueEl,
+            distanceValueEl,
+            durationValueEl,
+            priceValueEl,
+            {
+                lat: nearest.lat,
+                lng: nearest.lng,
+                distanceKm: chargedKm,
+                durationMinutes,
+                price: priceEstimate,
+            }
+        );
+
+        enableBookingIfValid(submitBtn, true);
+    });
+}
+
+function getRouteCoordinatesFromGeometry(geometry) {
+    if (!geometry || geometry.type !== 'LineString' || !Array.isArray(geometry.coordinates)) {
+        return [];
+    }
+
+    return geometry.coordinates
+        .filter((coord) => Array.isArray(coord) && coord.length >= 2)
+        .map((coord) => ({ lat: coord[1], lng: coord[0] }));
+}
+
+function findNearestPointOnRoute(clickedLatLng, routeCoordinates) {
+    let minDistance = Number.POSITIVE_INFINITY;
+    let closest = null;
+
+    for (let i = 0; i < routeCoordinates.length - 1; i++) {
+        const segment = distancePointToSegmentMeters(clickedLatLng, routeCoordinates[i], routeCoordinates[i + 1]);
+        if (segment.distanceMeters < minDistance) {
+            minDistance = segment.distanceMeters;
+            closest = {
+                lat: segment.lat,
+                lng: segment.lng,
+                distanceMeters: segment.distanceMeters,
+                segmentIndex: i,
+                t: segment.t,
+            };
+        }
+    }
+
+    return closest;
+}
+
+function distancePointToSegmentMeters(point, a, b) {
+    const r = 6371000;
+    const toRad = (value) => (value * Math.PI) / 180;
+
+    const lat1 = toRad(a.lat);
+    const lng1 = toRad(a.lng);
+    const lat2 = toRad(b.lat);
+    const lng2 = toRad(b.lng);
+    const latP = toRad(point.lat);
+    const lngP = toRad(point.lng);
+
+    const lat0 = (lat1 + lat2) / 2;
+    const ax = lng1 * Math.cos(lat0) * r;
+    const ay = lat1 * r;
+    const bx = lng2 * Math.cos(lat0) * r;
+    const by = lat2 * r;
+    const px = lngP * Math.cos(lat0) * r;
+    const py = latP * r;
+
+    const dx = bx - ax;
+    const dy = by - ay;
+    const lenSq = (dx * dx) + (dy * dy);
+    let t = lenSq > 0 ? ((px - ax) * dx + (py - ay) * dy) / lenSq : 0;
+    t = Math.max(0, Math.min(1, t));
+
+    const closestX = ax + dx * t;
+    const closestY = ay + dy * t;
+    const distanceMeters = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+
+    const closestLat = (closestY / r) * (180 / Math.PI);
+    const closestLng = (closestX / (r * Math.cos(lat0))) * (180 / Math.PI);
+
+    return {
+        distanceMeters,
+        t,
+        lat: closestLat,
+        lng: closestLng,
+    };
+}
+
+function distanceBetweenLatLngMeters(a, b) {
+    const r = 6371000;
+    const toRad = (value) => (value * Math.PI) / 180;
+    const lat1 = toRad(a.lat);
+    const lng1 = toRad(a.lng);
+    const lat2 = toRad(b.lat);
+    const lng2 = toRad(b.lng);
+    const dLat = lat2 - lat1;
+    const dLng = lng2 - lng1;
+
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    return r * c;
+}
+
+function computeRouteDistanceAlongPolyline(routeCoordinates, segmentIndex, t) {
+    if (!routeCoordinates.length) return 0;
+
+    const safeIndex = Math.max(0, Math.min(segmentIndex, routeCoordinates.length - 2));
+    const safeT = Math.max(0, Math.min(1, t));
+    let distance = 0;
+
+    for (let i = 0; i < safeIndex; i++) {
+        distance += distanceBetweenLatLngMeters(routeCoordinates[i], routeCoordinates[i + 1]);
+    }
+
+    const segmentDistance = distanceBetweenLatLngMeters(routeCoordinates[safeIndex], routeCoordinates[safeIndex + 1]);
+    distance += segmentDistance * safeT;
+
+    return distance;
+}
+
+function computeRouteDurationProportionally(totalMinutes, segmentMeters, totalMeters) {
+    if (!Number.isFinite(totalMinutes) || totalMinutes <= 0 || totalMeters <= 0) {
+        return null;
+    }
+
+    return Math.round(totalMinutes * (segmentMeters / totalMeters));
+}
+
+function updateReservationPointSummary(pointEl, distanceEl, durationEl, priceEl, data) {
+    if (!data) {
+        if (pointEl) pointEl.textContent = '-';
+        if (distanceEl) distanceEl.textContent = '-';
+        if (durationEl) durationEl.textContent = '-';
+        if (priceEl) priceEl.textContent = '-';
+        return;
+    }
+
+    if (pointEl) {
+        pointEl.textContent = `${data.lat.toFixed(5)}, ${data.lng.toFixed(5)}`;
+    }
+    if (distanceEl) {
+        distanceEl.textContent = data.distanceKm.toFixed(2);
+    }
+    if (durationEl) {
+        durationEl.textContent = data.durationMinutes !== null ? String(data.durationMinutes) : '-';
+    }
+    if (priceEl) {
+        priceEl.textContent = data.price.toFixed(2);
+    }
+}
+
+function enableBookingIfValid(button, isValid) {
+    if (!button) return;
+    button.disabled = !isValid;
+    button.classList.toggle('is-disabled', !isValid);
+}
+
+async function calculateRouteWithOSRM(startLat, startLng, endLat, endLng, osrmUrl) {
+    const url = `${osrmUrl}/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson&steps=false&alternatives=false`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('OSRM request failed');
+    }
+    const data = await response.json();
+    if (!data.routes || !data.routes.length) {
+        throw new Error('OSRM route missing');
+    }
+    const route = data.routes[0];
+    return {
+        distanceKm: route.distance / 1000,
+        durationMinutes: Math.round(route.duration / 60),
+        geometry: route.geometry,
+    };
+}
+
+function calculateHaversineDistanceKm(lat1, lng1, lat2, lng2) {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const earthRadius = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadius * c;
+}
+
+function drawRouteLine(routeGeometry, map, setLayer) {
+    if (!map || !routeGeometry) return;
+    if (map._routeLayer) {
+        map.removeLayer(map._routeLayer);
+    }
+    const layer = L.geoJSON(routeGeometry, {
+        style: {
+            color: '#C0392B',
+            weight: 4,
+            opacity: 0.9,
+        },
+    }).addTo(map);
+    map._routeLayer = layer;
+    if (typeof setLayer === 'function') {
+        setLayer(layer);
+    }
+    if (layer.getBounds && layer.getBounds().isValid()) {
+        map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+    }
+}
+
+function updateRouteSummary(distanceKm, durationMinutes, provider, distanceValue, durationValue, routeWarning) {
+    if (distanceValue) {
+        distanceValue.textContent = Number.isFinite(distanceKm) ? distanceKm.toFixed(2) : '-';
+    }
+    if (durationValue) {
+        durationValue.textContent = Number.isFinite(durationMinutes) ? String(durationMinutes) : '-';
+    }
+    if (routeWarning) {
+        if (provider === 'haversine_fallback') {
+            routeWarning.textContent = "Circuit routier indisponible. Distance estimee a vol d'oiseau.";
+            routeWarning.style.display = 'block';
+        } else {
+            routeWarning.textContent = '';
+            routeWarning.style.display = 'none';
+        }
+    }
+}
+
+function updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, onUpdated) {
+    if (!distanceInput || !prixParKmInput || !suggestedPriceValue) return;
+    const distanceKm = parseFloat(distanceInput.value || '');
+    const prixParKm = parseFloat(prixParKmInput.value || '');
+
+    if (!Number.isFinite(distanceKm) || !Number.isFinite(prixParKm)) {
+        suggestedPriceValue.textContent = '-';
+        if (typeof onUpdated === 'function') onUpdated();
+        return;
+    }
+
+    const suggested = Math.round(distanceKm * prixParKm * 100) / 100;
+    suggestedPriceValue.textContent = suggested.toFixed(2);
+
+    if (prixInput && !priceManuallyEdited) {
+        const current = prixInput.value !== '' ? parseFloat(prixInput.value) : null;
+        if (!Number.isFinite(current) || Math.abs(current - suggested) <= 0.01) {
+            prixInput.value = suggested.toFixed(2);
+        }
+    }
+
+    if (typeof onUpdated === 'function') onUpdated();
+}
+
+function applySuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue) {
+    if (!distanceInput || !prixParKmInput || !prixInput || !suggestedPriceValue) return;
+    const distanceKm = parseFloat(distanceInput.value || '');
+    const prixParKm = parseFloat(prixParKmInput.value || '');
+
+    if (!Number.isFinite(distanceKm) || !Number.isFinite(prixParKm)) return;
+
+    const suggested = Math.round(distanceKm * prixParKm * 100) / 100;
+    prixInput.value = suggested.toFixed(2);
+    suggestedPriceValue.textContent = suggested.toFixed(2);
+}
+
+function serializeRouteGeometry(geometry) {
+    try {
+        return JSON.stringify(geometry);
+    } catch (error) {
+        return '';
+    }
+}
+
+function initTripPreviewMaps() {
+    const previewMaps = document.querySelectorAll('.circuit-preview-map');
+    if (!previewMaps.length || typeof window.L === 'undefined') return;
+
+    previewMaps.forEach((mapEl) => {
+        const raw = mapEl.dataset.routeGeometry || '';
+        if (!raw) return;
+
+        let geometry = null;
+        try {
+            geometry = JSON.parse(raw);
+        } catch (error) {
+            return;
+        }
+
+        const sesameLat = parseFloat(mapEl.dataset.sesameLat || '0');
+        const sesameLng = parseFloat(mapEl.dataset.sesameLng || '0');
+
+        const map = L.map(mapEl, {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            tap: false,
+        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        if (Number.isFinite(sesameLat) && Number.isFinite(sesameLng)) {
+            L.circleMarker([sesameLat, sesameLng], {
+                radius: 5,
+                color: '#C0392B',
+                weight: 2,
+                fillColor: '#C0392B',
+                fillOpacity: 0.9,
+            }).addTo(map);
+        }
+
+        drawRouteLine(geometry, map);
     });
 }

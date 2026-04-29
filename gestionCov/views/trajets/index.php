@@ -89,6 +89,12 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
                     <div class="tlc-info">
                         <span><?= ui_icon('calendar', 'icon icon-xs') ?> <?= date('d/m/Y', strtotime($t['date_depart'])) ?></span>
                         <span><?= ui_icon('clock', 'icon icon-xs') ?> <?= substr($t['heure_depart'], 0, 5) ?></span>
+                        <?php if (isset($t['distance_km']) && $t['distance_km'] !== null): ?>
+                            <span><?= ui_icon('distance', 'icon icon-xs') ?> <?= number_format((float) $t['distance_km'], 2) ?> km</span>
+                        <?php endif; ?>
+                        <?php if (isset($t['duree_minutes']) && $t['duree_minutes'] !== null): ?>
+                            <span><?= ui_icon('clock', 'icon icon-xs') ?> <?= (int) $t['duree_minutes'] ?> min</span>
+                        <?php endif; ?>
                         <span><?= ui_icon('user', 'icon icon-xs') ?> <?= htmlspecialchars($t['prenom'] . ' ' . $t['nom'], ENT_QUOTES, 'UTF-8') ?></span>
                         <span class="places-badge <?= (int) $t['places_restantes'] === 0 ? 'places-full' : '' ?>">
                             <?= ui_icon('seats', 'icon icon-xs') ?> <?= (int) $t['places_restantes'] ?> place(s)

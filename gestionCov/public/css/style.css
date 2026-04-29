@@ -524,6 +524,192 @@ button {
     margin-top: 1.5rem;
 }
 
+/* ── Trip map picker ─────────────────────────────────────────── */
+.map-picker-card {
+    background: var(--clr-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    border: 1px solid #f2d8d3;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.map-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.map-picker-title {
+    font-size: .95rem;
+    font-weight: 700;
+}
+
+.map-picker-subtitle {
+    font-size: .82rem;
+    color: var(--clr-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.map-hint {
+    font-size: .8rem;
+    color: var(--clr-text-muted);
+    margin-top: .2rem;
+}
+
+.trip-map {
+    width: 100%;
+    height: 340px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--clr-border);
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.route-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: .8rem;
+}
+
+.distance-summary,
+.duration-summary {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem .9rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--clr-border);
+    background: #fff8f6;
+}
+
+.route-warning {
+    border: 1px solid #f6d58d;
+    background: #fff7e8;
+    color: #8a5a00;
+    border-radius: var(--radius-md);
+    padding: .6rem .8rem;
+    font-size: .85rem;
+}
+
+.price-estimate-box {
+    background: #fff;
+    border: 1px dashed #f0d7d1;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+}
+
+.suggested-price-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.suggested-price-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--clr-primary);
+}
+
+.suggested-price-unit {
+    font-size: .85rem;
+    color: var(--clr-text-muted);
+}
+
+.apply-suggested-price {
+    margin-left: auto;
+}
+
+.circuit-preview-map {
+    width: 100%;
+    height: 280px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--clr-border);
+    overflow: hidden;
+    margin-top: .75rem;
+}
+
+/* ── Reservation point picker ───────────────────────────────── */
+.reservation-point-picker {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+
+.reservation-point-title {
+    font-weight: 700;
+    font-size: .95rem;
+}
+
+.reservation-point-hint {
+    font-size: .85rem;
+    color: var(--clr-text-muted);
+}
+
+.reservation-point-cta {
+    font-size: .8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--clr-primary-dark);
+}
+
+.reservation-map-active {
+    width: 100%;
+    height: 280px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--clr-border);
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.reservation-point-warning {
+    border: 1px solid #f6d58d;
+    background: #fff7e8;
+    color: #8a5a00;
+    border-radius: var(--radius-md);
+    padding: .6rem .8rem;
+    font-size: .85rem;
+}
+
+.reservation-point-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: .75rem;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    padding: .75rem .9rem;
+    background: #fff;
+}
+
+.reservation-point-row small {
+    display: block;
+    font-size: .75rem;
+    color: var(--clr-text-muted);
+    margin-bottom: .15rem;
+}
+
+.reservation-price-preview strong {
+    color: var(--clr-primary-dark);
+}
+
+.btn.is-disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
 /* Password toggle */
 .input-password {
     position: relative;
@@ -2038,6 +2224,18 @@ button {
     .page-header-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .trip-map {
+        height: 260px;
+    }
+
+    .circuit-preview-map {
+        height: 220px;
+    }
+
+    .reservation-map-active {
+        height: 240px;
     }
 }
 

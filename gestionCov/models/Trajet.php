@@ -28,7 +28,15 @@ class Trajet
     public function getByConducteur(int $conducteurId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM trajets WHERE conducteur_id = ? ORDER BY date_depart DESC'
+            'SELECT t.*,
+                    COALESCE(SUM(CASE WHEN r.statut = "confirmee" THEN 1 ELSE 0 END), 0) AS confirmed_count,
+                    COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN 1 ELSE 0 END), 0) AS paid_declared_count,
+                    COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN COALESCE(r.paid_amount, r.prix_snapshot, t.prix) ELSE 0 END), 0) AS declared_total
+             FROM trajets t
+             LEFT JOIN reservations r ON r.trajet_id = t.id
+             WHERE t.conducteur_id = ?
+             GROUP BY t.id
+             ORDER BY t.date_depart DESC, t.heure_depart DESC'
         );
         $stmt->execute([$conducteurId]);
         return $stmt->fetchAll();
@@ -85,10 +93,20 @@ class Trajet
                        t.ville_arrivee,
                        t.date_depart,
                        t.heure_depart,
+                       t.distance_km,
+                       t.duree_minutes,
+                       t.prix_par_km,
+                       t.point_lat,
+                       t.point_lng,
+                       t.route_geometry,
+                       t.route_provider,
+                       t.route_calculated_at,
                        t.prix,
                        t.places_total,
                        t.places_restantes,
                        t.description,
+                       t.statut_trajet,
+                       t.completed_at,
                        t.created_at,
                        t.updated_at,
                        c.nom AS conducteur_nom,
@@ -99,7 +117,9 @@ class Trajet
                        COALESCE(SUM(CASE WHEN r.statut = "en_attente" THEN 1 ELSE 0 END), 0) AS pending_count,
                        COALESCE(SUM(CASE WHEN r.statut = "refusee" THEN 1 ELSE 0 END), 0) AS refused_count,
                        COALESCE(SUM(CASE WHEN r.statut = "annulee" THEN 1 ELSE 0 END), 0) AS cancelled_count,
-                       COALESCE(SUM(CASE WHEN r.statut = "confirmee" THEN COALESCE(r.prix_snapshot, t.prix) ELSE 0 END), 0) AS estimated_confirmed_revenue
+                       COALESCE(SUM(CASE WHEN r.statut = "confirmee" THEN COALESCE(r.prix_snapshot, t.prix) ELSE 0 END), 0) AS estimated_confirmed_revenue,
+                       COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN 1 ELSE 0 END), 0) AS paid_declared_count,
+                       COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN COALESCE(r.paid_amount, r.prix_snapshot, t.prix) ELSE 0 END), 0) AS declared_total
                 FROM trajets t
                 INNER JOIN utilisateurs c ON t.conducteur_id = c.id
                 LEFT JOIN reservations r ON r.trajet_id = t.id
@@ -176,7 +196,9 @@ class Trajet
                 COALESCE(SUM(CASE WHEN r.statut = "en_attente" THEN 1 ELSE 0 END), 0) AS pending_count,
                 COALESCE(SUM(CASE WHEN r.statut = "refusee" THEN 1 ELSE 0 END), 0) AS refused_count,
                 COALESCE(SUM(CASE WHEN r.statut = "annulee" THEN 1 ELSE 0 END), 0) AS cancelled_count,
-                COALESCE(SUM(CASE WHEN r.statut = "confirmee" THEN COALESCE(r.prix_snapshot, t.prix) ELSE 0 END), 0) AS estimated_confirmed_revenue
+                COALESCE(SUM(CASE WHEN r.statut = "confirmee" THEN COALESCE(r.prix_snapshot, t.prix) ELSE 0 END), 0) AS estimated_confirmed_revenue,
+                COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN 1 ELSE 0 END), 0) AS paid_declared_count,
+                COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN COALESCE(r.paid_amount, r.prix_snapshot, t.prix) ELSE 0 END), 0) AS declared_total
              FROM reservations r
              INNER JOIN trajets t ON r.trajet_id = t.id
              WHERE r.trajet_id = ?'
@@ -192,6 +214,8 @@ class Trajet
                 'refused_count' => 0,
                 'cancelled_count' => 0,
                 'estimated_confirmed_revenue' => 0.0,
+                'paid_declared_count' => 0,
+                'declared_total' => 0.0,
             ];
         }
 
@@ -202,17 +226,140 @@ class Trajet
             'refused_count' => (int) ($row['refused_count'] ?? 0),
             'cancelled_count' => (int) ($row['cancelled_count'] ?? 0),
             'estimated_confirmed_revenue' => (float) ($row['estimated_confirmed_revenue'] ?? 0),
+            'paid_declared_count' => (int) ($row['paid_declared_count'] ?? 0),
+            'declared_total' => (float) ($row['declared_total'] ?? 0),
         ];
     }
 
     // Write
 
+    public function completeTrip(int $trajetId, int $conducteurId): array
+    {
+        try {
+            $this->pdo->beginTransaction();
+
+            $stmt = $this->pdo->prepare(
+                'SELECT id, conducteur_id, date_depart, heure_depart, prix, statut_trajet,
+                        (TIMESTAMP(date_depart, heure_depart) <= NOW()) AS is_past_departure
+                 FROM trajets
+                 WHERE id = ?
+                 FOR UPDATE'
+            );
+            $stmt->execute([$trajetId]);
+            $trajet = $stmt->fetch();
+
+            if (!$trajet || (int) $trajet['conducteur_id'] !== $conducteurId) {
+                $this->pdo->rollBack();
+                return [
+                    'success' => false,
+                    'message' => 'Trajet introuvable ou accès refusé.',
+                    'completed_reservations' => 0,
+                    'declared_total' => 0.0,
+                ];
+            }
+
+            if (($trajet['statut_trajet'] ?? 'publie') !== 'publie') {
+                $this->pdo->rollBack();
+                return [
+                    'success' => false,
+                    'message' => (($trajet['statut_trajet'] ?? '') === 'termine')
+                        ? 'Ce trajet est déjà terminé.'
+                        : 'Ce trajet ne peut pas être marqué terminé.',
+                    'completed_reservations' => 0,
+                    'declared_total' => 0.0,
+                ];
+            }
+
+            if ((int) ($trajet['is_past_departure'] ?? 0) !== 1) {
+                $this->pdo->rollBack();
+                return [
+                    'success' => false,
+                    'message' => "Ce trajet ne peut être marqué terminé qu'après son horaire de départ.",
+                    'completed_reservations' => 0,
+                    'declared_total' => 0.0,
+                ];
+            }
+
+            $confirmedStmt = $this->pdo->prepare(
+                'SELECT id, COALESCE(prix_snapshot, ?) AS declared_amount
+                 FROM reservations
+                 WHERE trajet_id = ?
+                   AND statut = "confirmee"
+                 FOR UPDATE'
+            );
+            $confirmedStmt->execute([(float) $trajet['prix'], $trajetId]);
+            $confirmedRows = $confirmedStmt->fetchAll();
+            $completedReservations = count($confirmedRows);
+
+            if ($completedReservations === 0) {
+                $this->pdo->rollBack();
+                return [
+                    'success' => false,
+                    'message' => 'Aucune réservation confirmée à déclarer pour ce trajet.',
+                    'completed_reservations' => 0,
+                    'declared_total' => 0.0,
+                ];
+            }
+
+            $declaredTotal = 0.0;
+            foreach ($confirmedRows as $row) {
+                $declaredTotal += (float) ($row['declared_amount'] ?? 0);
+            }
+
+            $updateTrip = $this->pdo->prepare(
+                'UPDATE trajets
+                 SET statut_trajet = "termine",
+                     completed_at = NOW()
+                 WHERE id = ?'
+            );
+            $updateTrip->execute([$trajetId]);
+
+            $updateReservations = $this->pdo->prepare(
+                'UPDATE reservations r
+                 INNER JOIN trajets t ON r.trajet_id = t.id
+                 SET r.payment_status = "declare_paye",
+                     r.paid_amount = COALESCE(r.prix_snapshot, t.prix),
+                     r.paid_at = NOW()
+                 WHERE r.trajet_id = ?
+                   AND r.statut = "confirmee"'
+            );
+            $updateReservations->execute([$trajetId]);
+
+            $this->pdo->commit();
+            return [
+                'success' => true,
+                'message' => 'Trajet terminé. Paiements en espèces déclarés pour les réservations confirmées.',
+                'completed_reservations' => $completedReservations,
+                'declared_total' => $declaredTotal,
+            ];
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('[TRIP COMPLETE ERROR] ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Erreur lors de la déclaration du trajet terminé.',
+                'completed_reservations' => 0,
+                'declared_total' => 0.0,
+            ];
+        }
+    }
+
     public function create(array $data): int
     {
+        $routeCalculatedAt = null;
+        if ($data['distance_km'] !== null || !empty($data['route_geometry'])) {
+            $routeCalculatedAt = date('Y-m-d H:i:s');
+        }
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO trajets
-             (conducteur_id, ville_depart, ville_arrivee, date_depart, heure_depart, prix, places_total, places_restantes, description)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             (conducteur_id, ville_depart, ville_arrivee, date_depart, heure_depart,
+              distance_km, duree_minutes, prix_par_km, point_lat, point_lng,
+              route_geometry, route_provider, route_calculated_at,
+              prix, places_total, places_restantes, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $data['conducteur_id'],
@@ -220,6 +367,14 @@ class Trajet
             $data['ville_arrivee'],
             $data['date_depart'],
             $data['heure_depart'],
+            $data['distance_km'],
+            $data['duree_minutes'],
+            $data['prix_par_km'],
+            $data['point_lat'],
+            $data['point_lng'],
+            $data['route_geometry'],
+            $data['route_provider'],
+            $routeCalculatedAt,
             $data['prix'],
             $data['places_total'],
             $data['places_total'],
@@ -230,10 +385,17 @@ class Trajet
 
     public function update(int $id, array $data): bool
     {
+        $routeCalculatedAt = null;
+        if ($data['distance_km'] !== null || !empty($data['route_geometry'])) {
+            $routeCalculatedAt = date('Y-m-d H:i:s');
+        }
+
         $stmt = $this->pdo->prepare(
             'UPDATE trajets
-             SET ville_depart = ?, ville_arrivee = ?, date_depart = ?, heure_depart = ?, prix = ?,
-                 places_total = ?, description = ?
+             SET ville_depart = ?, ville_arrivee = ?, date_depart = ?, heure_depart = ?,
+                 distance_km = ?, duree_minutes = ?, prix_par_km = ?, point_lat = ?, point_lng = ?,
+                 route_geometry = ?, route_provider = ?, route_calculated_at = ?,
+                 prix = ?, places_total = ?, description = ?
              WHERE id = ? AND conducteur_id = ?'
         );
         return $stmt->execute([
@@ -241,6 +403,14 @@ class Trajet
             $data['ville_arrivee'],
             $data['date_depart'],
             $data['heure_depart'],
+            $data['distance_km'],
+            $data['duree_minutes'],
+            $data['prix_par_km'],
+            $data['point_lat'],
+            $data['point_lng'],
+            $data['route_geometry'],
+            $data['route_provider'],
+            $routeCalculatedAt,
             $data['prix'],
             $data['places_total'],
             $data['description'] ?? null,
@@ -263,4 +433,3 @@ class Trajet
         return $stmt->execute([$id]);
     }
 }
-

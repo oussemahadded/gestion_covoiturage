@@ -50,6 +50,13 @@ if (!function_exists('admin_rd_role_label')) {
     }
 }
 
+if (!function_exists('admin_rd_payment_label')) {
+    function admin_rd_payment_label(string $status): string
+    {
+        return $status === 'declare_paye' ? 'Paiement en espèces déclaré' : 'Non applicable';
+    }
+}
+
 $status = (string) ($reservation['statut'] ?? 'en_attente');
 $statusIcon = match ($status) {
     'confirmee' => 'success',
@@ -57,6 +64,14 @@ $statusIcon = match ($status) {
     'annulee' => 'cancelled',
     default => 'pending',
 };
+$paymentStatus = (string) ($reservation['payment_status'] ?? 'non_applicable');
+$reservationType = (string) ($reservation['reservation_point_type'] ?? '');
+$pointLabel = $reservationType === 'prise_en_charge'
+    ? 'Point de prise en charge'
+    : ($reservationType === 'depose' ? 'Point de dépose' : '');
+$reservationPrice = $reservation['reservation_price'] ?? $reservation['prix_snapshot'] ?? $reservation['trajet_prix'] ?? 0;
+$reservationDistance = $reservation['reservation_distance_km'] ?? null;
+$reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
 ?>
 
 <div class="container">
@@ -81,6 +96,33 @@ $statusIcon = match ($status) {
         </p>
         <p><strong>Montant estimé:</strong> <span class="money-value"><?= number_format((float) ($reservation['montant_estime'] ?? 0), 2) ?> TND</span></p>
         <p><strong>Prix snapshot (réservation):</strong> <span class="money-value"><?= number_format((float) (($reservation['prix_snapshot'] ?? $reservation['trajet_prix'] ?? 0)), 2) ?> TND</span></p>
+        <p>
+            <strong>Statut paiement:</strong>
+            <?php if ($paymentStatus === 'declare_paye'): ?>
+                <span class="payment-status-badge payment-status-declare_paye">
+                    <?= ui_icon('price', 'icon icon-xs') ?>
+                    <span><?= htmlspecialchars(admin_rd_payment_label($paymentStatus), ENT_QUOTES, 'UTF-8') ?></span>
+                </span>
+            <?php else: ?>
+                <span class="text-muted"><?= htmlspecialchars(admin_rd_payment_label($paymentStatus), ENT_QUOTES, 'UTF-8') ?></span>
+            <?php endif; ?>
+        </p>
+        <?php if ($paymentStatus === 'declare_paye'): ?>
+            <p><strong>Montant déclaré:</strong> <span class="money-value"><?= number_format((float) ($reservation['paid_amount'] ?? $reservation['montant_estime'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Déclaré le:</strong> <?= admin_rd_datetime((string) ($reservation['paid_at'] ?? '')) ?></p>
+        <?php endif; ?>
+    </section>
+
+    <section class="admin-detail-card">
+        <h2>Point de réservation</h2>
+        <?php if ($pointLabel !== '' && isset($reservation['reservation_point_lat'], $reservation['reservation_point_lng'])): ?>
+            <p><strong><?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?>:</strong> <?= number_format((float) $reservation['reservation_point_lat'], 5) ?>, <?= number_format((float) $reservation['reservation_point_lng'], 5) ?></p>
+            <p><strong>Distance facturée:</strong> <?= $reservationDistance !== null ? number_format((float) $reservationDistance, 2) . ' km' : '-' ?></p>
+            <p><strong>Durée estimée:</strong> <?= $reservationDuration !== null ? (int) $reservationDuration . ' min' : '-' ?></p>
+            <p><strong>Prix réservation:</strong> <span class="money-value"><?= number_format((float) $reservationPrice, 2) ?> TND</span></p>
+        <?php else: ?>
+            <p class="text-muted">Aucune information de point sélectionné.</p>
+        <?php endif; ?>
     </section>
 
     <div class="admin-detail-grid">
@@ -107,6 +149,8 @@ $statusIcon = match ($status) {
             <p><strong>Date:</strong> <?= admin_rd_date((string) ($reservation['date_depart'] ?? '')) ?></p>
             <p><strong>Heure:</strong> <?= htmlspecialchars(substr((string) ($reservation['heure_depart'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8') ?></p>
             <p><strong>Prix par passager (trajet):</strong> <span class="money-value"><?= number_format((float) ($reservation['trajet_prix'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Statut trajet:</strong> <?= htmlspecialchars((string) ($reservation['statut_trajet'] ?? 'publie'), ENT_QUOTES, 'UTF-8') ?></p>
+            <p><strong>Terminé le:</strong> <?= admin_rd_datetime((string) ($reservation['completed_at'] ?? '')) ?></p>
             <p><strong>Description:</strong> <?= nl2br(htmlspecialchars((string) ($reservation['trajet_description'] ?? '-'), ENT_QUOTES, 'UTF-8')) ?></p>
         </section>
     </div>
@@ -129,6 +173,10 @@ $statusIcon = match ($status) {
             <li>
                 <strong>Annulée le:</strong>
                 <span><?= admin_rd_datetime((string) ($reservation['cancelled_at'] ?? '')) ?></span>
+            </li>
+            <li>
+                <strong>Déclaré payé le:</strong>
+                <span><?= admin_rd_datetime((string) ($reservation['paid_at'] ?? '')) ?></span>
             </li>
             <li>
                 <strong>Dernière mise à jour:</strong>

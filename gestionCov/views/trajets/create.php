@@ -1,5 +1,6 @@
 <?php
 $pageTitle = 'Proposer un trajet';
+$includeMap = true;
 $errors = $_SESSION['form_errors'] ?? [];
 $old = $_SESSION['form_data'] ?? [];
 unset($_SESSION['form_errors'], $_SESSION['form_data']);
@@ -19,6 +20,14 @@ if ($direction === 'vers_sesame' && $villeArrivee === '') {
 if ($direction === 'depuis_sesame' && $villeDepart === '') {
     $villeDepart = 'Sesame';
 }
+
+$pointLat = $old['point_lat'] ?? '';
+$pointLng = $old['point_lng'] ?? '';
+$distanceKm = $old['distance_km'] ?? '';
+$dureeMinutes = $old['duree_minutes'] ?? '';
+$routeGeometry = $old['route_geometry'] ?? '';
+$routeProvider = $old['route_provider'] ?? (defined('ROUTING_PROVIDER') ? ROUTING_PROVIDER : 'osrm');
+$prixParKm = $old['prix_par_km'] ?? (defined('DEFAULT_PRIX_PAR_KM') ? DEFAULT_PRIX_PAR_KM : 1.0);
 
 $dateDisplay = '';
 if (!empty($old['date_depart'])) {
@@ -88,6 +97,96 @@ if (!empty($old['date_depart'])) {
                 </div>
             </div>
 
+            <div class="map-picker-card">
+                <div class="map-picker-header">
+                    <div>
+                        <label class="map-picker-title">Point du trajet sur la carte</label>
+                        <p class="map-hint">Cliquez pour positionner le point non Sesame, puis ajustez le marqueur.</p>
+                    </div>
+                    <div class="map-picker-subtitle">Circuit proposé</div>
+                </div>
+                <div id="tripMap"
+                     class="trip-map"
+                     data-sesame-lat="<?= htmlspecialchars((string) (defined('SESAME_LAT') ? SESAME_LAT : 0), ENT_QUOTES, 'UTF-8') ?>"
+                     data-sesame-lng="<?= htmlspecialchars((string) (defined('SESAME_LNG') ? SESAME_LNG : 0), ENT_QUOTES, 'UTF-8') ?>"
+                     data-osrm-url="<?= htmlspecialchars((string) (defined('OSRM_ROUTE_URL') ? OSRM_ROUTE_URL : ''), ENT_QUOTES, 'UTF-8') ?>"
+                     data-default-prix-par-km="<?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?>">
+                </div>
+
+                <div class="route-summary">
+                    <div class="distance-summary">
+                        <span class="meta-icon"><?= ui_icon('distance', 'icon icon-sm') ?></span>
+                        <div>
+                            <small>Distance du trajet</small>
+                            <strong><span id="distanceValue">-</span> km</strong>
+                        </div>
+                    </div>
+                    <div class="duration-summary">
+                        <span class="meta-icon"><?= ui_icon('clock', 'icon icon-sm') ?></span>
+                        <div>
+                            <small>Durée estimée</small>
+                            <strong><span id="durationValue">-</span> min</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="route-warning" id="routeWarning" style="display:none;"></div>
+
+                <input type="hidden" id="point_lat" name="point_lat" value="<?= htmlspecialchars((string) $pointLat, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" id="point_lng" name="point_lng" value="<?= htmlspecialchars((string) $pointLng, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" id="distance_km" name="distance_km" value="<?= htmlspecialchars((string) $distanceKm, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" id="duree_minutes" name="duree_minutes" value="<?= htmlspecialchars((string) $dureeMinutes, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" id="route_geometry" name="route_geometry" value="<?= htmlspecialchars((string) $routeGeometry, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" id="route_provider" name="route_provider" value="<?= htmlspecialchars((string) $routeProvider, ENT_QUOTES, 'UTF-8') ?>">
+
+                <div class="price-estimate-box">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="prix_par_km">Prix par km (TND)</label>
+                            <input type="number"
+                                   id="prix_par_km"
+                                   name="prix_par_km"
+                                   step="0.001"
+                                   min="0"
+                                   value="<?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?>"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label>Prix proposé</label>
+                            <div class="suggested-price-row">
+                                <span class="suggested-price-value" id="suggestedPriceValue">-</span>
+                                <span class="suggested-price-unit">TND</span>
+                                <button type="button" class="btn btn-outline btn-xs apply-suggested-price" id="applySuggestedPrice">Appliquer le prix proposé</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="prix">Prix final par passager (TND) *</label>
+                            <input type="number"
+                                   id="prix"
+                                   name="prix"
+                                   step="0.01"
+                                   min="0"
+                                   value="<?= htmlspecialchars((string) ($old['prix'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                   placeholder="15.000"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label for="places_total"><?= ui_icon('seats', 'icon icon-xs') ?> Nombre de places *</label>
+                            <input type="number"
+                                   id="places_total"
+                                   name="places_total"
+                                   min="1"
+                                   max="8"
+                                   value="<?= htmlspecialchars((string) ($old['places_total'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                   placeholder="3"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-row">
                 <div class="form-group date-fr-group">
                     <label for="date_depart_display"><?= ui_icon('calendar', 'icon icon-xs') ?> Date de départ *</label>
@@ -106,31 +205,6 @@ if (!empty($old['date_depart'])) {
                 <div class="form-group">
                     <label for="heure_depart"><?= ui_icon('clock', 'icon icon-xs') ?> Heure de départ *</label>
                     <input type="time" id="heure_depart" name="heure_depart" value="<?= htmlspecialchars($old['heure_depart'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="prix"><?= ui_icon('price', 'icon icon-xs') ?> Prix par personne (TND) *</label>
-                    <input type="number"
-                           id="prix"
-                           name="prix"
-                           step="0.01"
-                           min="0"
-                           value="<?= htmlspecialchars((string) ($old['prix'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                           placeholder="15.000"
-                           required>
-                </div>
-                <div class="form-group">
-                    <label for="places_total"><?= ui_icon('seats', 'icon icon-xs') ?> Nombre de places *</label>
-                    <input type="number"
-                           id="places_total"
-                           name="places_total"
-                           min="1"
-                           max="8"
-                           value="<?= htmlspecialchars((string) ($old['places_total'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                           placeholder="3"
-                           required>
                 </div>
             </div>
 

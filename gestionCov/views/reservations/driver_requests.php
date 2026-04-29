@@ -41,6 +41,13 @@
                         'refusee' => 'refused',
                         default => 'warning',
                     };
+                    $reservationPrice = $r['reservation_price'] ?? $r['prix_snapshot'] ?? $r['prix'] ?? 0;
+                    $reservationDistance = $r['reservation_distance_km'] ?? null;
+                    $reservationType = (string) ($r['reservation_point_type'] ?? '');
+                    $pointLabel = $reservationType === 'prise_en_charge'
+                        ? 'Point de prise en charge'
+                        : ($reservationType === 'depose' ? 'Point de dépose' : '');
+                    $pointIcon = $reservationType === 'prise_en_charge' ? 'departure' : 'arrival';
                     ?>
                     <tr>
                         <td>
@@ -70,6 +77,34 @@
                                 <?= ui_icon($statusIcon, 'icon icon-xs') ?>
                                 <span><?= htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8') ?></span>
                             </span>
+                            <?php if ($pointLabel !== '' && isset($r['reservation_point_lat'], $r['reservation_point_lng'])): ?>
+                                <br>
+                                <small>
+                                    <?= ui_icon($pointIcon, 'icon icon-xs') ?>
+                                    <?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?>:
+                                    <?= number_format((float) $r['reservation_point_lat'], 5) ?>,
+                                    <?= number_format((float) $r['reservation_point_lng'], 5) ?>
+                                </small>
+                                <?php if ($reservationDistance !== null): ?>
+                                    <br>
+                                    <small>Distance facturée: <?= number_format((float) $reservationDistance, 2) ?> km</small>
+                                <?php endif; ?>
+                                <br>
+                                <small>Prix estimé: <?= number_format((float) $reservationPrice, 2) ?> TND</small>
+                            <?php endif; ?>
+                            <?php if (($r['statut'] ?? '') === 'confirmee' && ($r['payment_status'] ?? '') === 'declare_paye'): ?>
+                                <?php
+                                $paidAmount = $r['paid_amount'] ?? $r['montant_estime'] ?? $r['prix'] ?? 0;
+                                $paidAt = !empty($r['paid_at']) ? date('d/m/Y H:i', strtotime((string) $r['paid_at'])) : '-';
+                                ?>
+                                <br>
+                                <span class="payment-status-badge payment-status-declare_paye">
+                                    <?= ui_icon('price', 'icon icon-xs') ?>
+                                    <span>Paiement en espèces déclaré</span>
+                                </span>
+                                <br>
+                                <small>Montant déclaré: <?= number_format((float) $paidAmount, 2) ?> TND · Déclaré le <?= htmlspecialchars($paidAt, ENT_QUOTES, 'UTF-8') ?></small>
+                            <?php endif; ?>
                         </td>
                         <td class="table-actions">
                             <?php if ($r['statut'] === 'en_attente'): ?>

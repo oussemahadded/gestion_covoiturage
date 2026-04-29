@@ -16,6 +16,7 @@ define('ROOT_PATH', __DIR__);
 define('BASE_URL',  'http://localhost/pfa/gestionCov');
 
 // ── 3. Auto-chargement simplifié ─────────────────────────────────────────────
+require_once ROOT_PATH . '/config/app.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/core/Router.php';
 

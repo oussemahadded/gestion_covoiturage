@@ -1,5 +1,43 @@
 <?php
 $pageTitle = htmlspecialchars($trajet['ville_depart'] . ' → ' . $trajet['ville_arrivee'], ENT_QUOTES, 'UTF-8');
+$includeMap = !empty($trajet['route_geometry']);
+$tripDirection = strcasecmp((string) ($trajet['ville_arrivee'] ?? ''), 'Sesame') === 0 ? 'vers_sesame' : 'depuis_sesame';
+$reservationPointLabel = $tripDirection === 'vers_sesame' ? 'Point de prise en charge' : 'Point de dépose';
+$reservationPointType = $tripDirection === 'vers_sesame' ? 'prise_en_charge' : 'depose';
+$hasRouteGeometry = !empty($trajet['route_geometry']);
+if (!function_exists('trip_show_status_label')) {
+    function trip_show_status_label(string $status): string
+    {
+        return match ($status) {
+            'termine' => 'Terminé',
+            'annule' => 'Annulé',
+            default => 'Publié',
+        };
+    }
+}
+
+if (!function_exists('trip_show_status_icon')) {
+    function trip_show_status_icon(string $status): string
+    {
+        return match ($status) {
+            'termine' => 'success',
+            'annule' => 'cancelled',
+            default => 'pending',
+        };
+    }
+}
+
+if (!function_exists('trip_show_datetime')) {
+    function trip_show_datetime(?string $value): string
+    {
+        if (!$value) {
+            return '-';
+        }
+        $ts = strtotime($value);
+        return $ts ? date('d/m/Y H:i', $ts) : '-';
+    }
+}
+
 require_once ROOT_PATH . '/views/layouts/header.php';
 ?>
 
@@ -45,6 +83,45 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                     </div>
                 </div>
                 <div class="meta-item">
+                    <span class="meta-icon"><?= ui_icon('distance', 'icon icon-sm') ?></span>
+                    <div>
+                        <small>Distance du trajet</small>
+                        <strong>
+                            <?php if (isset($trajet['distance_km']) && $trajet['distance_km'] !== null): ?>
+                                <?= number_format((float) $trajet['distance_km'], 2) ?> km
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </strong>
+                    </div>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-icon"><?= ui_icon('clock', 'icon icon-sm') ?></span>
+                    <div>
+                        <small>Durée estimée</small>
+                        <strong>
+                            <?php if (isset($trajet['duree_minutes']) && $trajet['duree_minutes'] !== null): ?>
+                                <?= (int) $trajet['duree_minutes'] ?> min
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </strong>
+                    </div>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-icon"><?= ui_icon('price', 'icon icon-sm') ?></span>
+                    <div>
+                        <small>Prix par km</small>
+                        <strong>
+                            <?php if (isset($trajet['prix_par_km']) && $trajet['prix_par_km'] !== null): ?>
+                                <?= number_format((float) $trajet['prix_par_km'], 3) ?> TND / km
+                            <?php else: ?>
+                                -
+                            <?php endif; ?>
+                        </strong>
+                    </div>
+                </div>
+                <div class="meta-item">
                     <span class="meta-icon"><?= ui_icon('seats', 'icon icon-sm') ?></span>
                     <div>
                         <small>Places restantes</small>
@@ -54,8 +131,22 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 <div class="meta-item">
                     <span class="meta-icon"><?= ui_icon('price', 'icon icon-sm') ?></span>
                     <div>
-                        <small>Prix par personne</small>
+                        <small>Prix final par passager</small>
                         <strong class="price-big"><?= number_format((float) $trajet['prix'], 2) ?> TND</strong>
+                    </div>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-icon"><?= ui_icon('traceability', 'icon icon-sm') ?></span>
+                    <div>
+                        <?php $tripStatus = (string) ($trajet['statut_trajet'] ?? 'publie'); ?>
+                        <small>Statut trajet</small>
+                        <span class="trip-status-badge trip-status-<?= htmlspecialchars($tripStatus, ENT_QUOTES, 'UTF-8') ?>">
+                            <?= ui_icon(trip_show_status_icon($tripStatus), 'icon icon-xs') ?>
+                            <span><?= htmlspecialchars(trip_show_status_label($tripStatus), ENT_QUOTES, 'UTF-8') ?></span>
+                        </span>
+                        <?php if ($tripStatus === 'termine'): ?>
+                            <small class="trip-status-note">Trajet terminé le <?= trip_show_datetime((string) ($trajet['completed_at'] ?? '')) ?></small>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -64,6 +155,18 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 <div class="detail-desc">
                     <h3>Description</h3>
                     <p><?= nl2br(htmlspecialchars($trajet['description'], ENT_QUOTES, 'UTF-8')) ?></p>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($trajet['route_geometry'])): ?>
+                <div class="detail-desc">
+                    <h3>Circuit proposé</h3>
+                    <div id="tripPreviewMap"
+                         class="circuit-preview-map"
+                         data-sesame-lat="<?= htmlspecialchars((string) (defined('SESAME_LAT') ? SESAME_LAT : 0), ENT_QUOTES, 'UTF-8') ?>"
+                         data-sesame-lng="<?= htmlspecialchars((string) (defined('SESAME_LNG') ? SESAME_LNG : 0), ENT_QUOTES, 'UTF-8') ?>"
+                         data-route-geometry="<?= htmlspecialchars((string) $trajet['route_geometry'], ENT_QUOTES, 'UTF-8') ?>">
+                    </div>
                 </div>
             <?php endif; ?>
         </article>
@@ -147,10 +250,60 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                             <p>Aucune place n'est disponible pour le moment.</p>
                         </div>
                     <?php else: ?>
-                        <form action="<?= BASE_URL ?>/index.php?page=reservation&action=book" method="POST">
+                        <form action="<?= BASE_URL ?>/index.php?page=reservation&action=book" method="POST" class="reservation-point-form">
                             <input type="hidden" name="trajet_id" value="<?= (int) $trajet['id'] ?>">
-                            <p class="booking-price"><?= number_format((float) $trajet['prix'], 2) ?> TND <small>/ personne</small></p>
-                            <button type="submit" class="btn btn-primary btn-full">
+                            <input type="hidden" name="reservation_point_lat" id="reservation_point_lat" value="">
+                            <input type="hidden" name="reservation_point_lng" id="reservation_point_lng" value="">
+                            <input type="hidden" name="reservation_point_type" id="reservation_point_type" value="<?= htmlspecialchars($reservationPointType, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="reservation_distance_km" id="reservation_distance_km" value="">
+                            <input type="hidden" name="reservation_duree_minutes" id="reservation_duree_minutes" value="">
+                            <input type="hidden" name="reservation_price" id="reservation_price" value="">
+
+                            <div class="reservation-point-picker">
+                                <p class="reservation-point-title"><?= htmlspecialchars($reservationPointLabel, ENT_QUOTES, 'UTF-8') ?></p>
+                                <p class="reservation-point-hint">Choisissez votre point sur le circuit proposé.</p>
+                                <p class="reservation-point-cta">Choisir mon point sur le circuit</p>
+
+                                <?php if ($hasRouteGeometry): ?>
+                                    <div id="reservationMap"
+                                         class="reservation-map-active"
+                                         data-route-geometry="<?= htmlspecialchars((string) $trajet['route_geometry'], ENT_QUOTES, 'UTF-8') ?>"
+                                         data-direction="<?= htmlspecialchars($tripDirection, ENT_QUOTES, 'UTF-8') ?>"
+                                         data-total-distance="<?= htmlspecialchars((string) ($trajet['distance_km'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                         data-total-duration="<?= htmlspecialchars((string) ($trajet['duree_minutes'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                         data-prix-par-km="<?= htmlspecialchars((string) ($trajet['prix_par_km'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                         data-sesame-lat="<?= htmlspecialchars((string) (defined('SESAME_LAT') ? SESAME_LAT : 0), ENT_QUOTES, 'UTF-8') ?>"
+                                         data-sesame-lng="<?= htmlspecialchars((string) (defined('SESAME_LNG') ? SESAME_LNG : 0), ENT_QUOTES, 'UTF-8') ?>">
+                                    </div>
+                                <?php else: ?>
+                                    <div class="reservation-point-warning reservation-point-warning--static">
+                                        Le circuit de ce trajet est indisponible.
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="reservation-point-warning" id="reservationPointWarning" style="display:none;"></div>
+
+                                <div class="reservation-point-summary" id="reservationPointSummary">
+                                    <div class="reservation-point-row">
+                                        <small>Point sélectionné</small>
+                                        <strong id="reservationPointValue">-</strong>
+                                    </div>
+                                    <div class="reservation-point-row">
+                                        <small>Distance facturée</small>
+                                        <strong><span id="reservationDistanceValue">-</span> km</strong>
+                                    </div>
+                                    <div class="reservation-point-row">
+                                        <small>Durée estimée</small>
+                                        <strong><span id="reservationDurationValue">-</span> min</strong>
+                                    </div>
+                                    <div class="reservation-point-row reservation-price-preview">
+                                        <small>Prix estimé pour votre trajet</small>
+                                        <strong><span id="reservationPriceValue">-</span> TND</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-full" id="reservationSubmitBtn" disabled>
                                 <?= ui_icon('reservation', 'icon icon-sm') ?>
                                 <span>Réserver ce trajet</span>
                             </button>

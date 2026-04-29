@@ -141,11 +141,20 @@ class Reservation
                        r.passager_id,
                        r.statut,
                        r.prix_snapshot,
+                       r.reservation_point_lat,
+                       r.reservation_point_lng,
+                       r.reservation_point_type,
+                       r.reservation_distance_km,
+                       r.reservation_duree_minutes,
+                       r.reservation_price,
                        r.created_at AS reservation_created_at,
                        r.updated_at AS reservation_updated_at,
                        r.confirmed_at,
                        r.refused_at,
                        r.cancelled_at,
+                       r.payment_status,
+                       r.paid_amount,
+                       r.paid_at,
                        t.id AS trip_id,
                        t.conducteur_id,
                        t.ville_depart,
@@ -153,6 +162,8 @@ class Reservation
                        t.date_depart,
                        t.heure_depart,
                        t.prix AS trajet_prix,
+                       t.statut_trajet,
+                       t.completed_at,
                        p.nom AS passager_nom,
                        p.prenom AS passager_prenom,
                        p.email AS passager_email,
@@ -238,6 +249,8 @@ class Reservation
                     t.description AS trajet_description,
                     t.places_total,
                     t.places_restantes,
+                    t.statut_trajet,
+                    t.completed_at,
                     t.created_at AS trajet_created_at,
                     t.updated_at AS trajet_updated_at,
                     p.id AS passager_user_id,
@@ -265,9 +278,130 @@ class Reservation
         return $stmt->fetch();
     }
 
+    public function getDeclaredRevenueStats(): array
+    {
+        $sql = 'SELECT
+                    (
+                        SELECT COALESCE(SUM(COALESCE(r.paid_amount, r.prix_snapshot, t.prix)), 0)
+                        FROM reservations r
+                        INNER JOIN trajets t ON r.trajet_id = t.id
+                        WHERE r.payment_status = "declare_paye"
+                    ) AS total_global,
+                    (
+                        SELECT COALESCE(SUM(COALESCE(r.paid_amount, r.prix_snapshot, t.prix)), 0)
+                        FROM reservations r
+                        INNER JOIN trajets t ON r.trajet_id = t.id
+                        WHERE r.payment_status = "declare_paye"
+                          AND YEARWEEK(r.paid_at, 1) = YEARWEEK(CURDATE(), 1)
+                    ) AS total_week,
+                    (
+                        SELECT COALESCE(SUM(COALESCE(r.paid_amount, r.prix_snapshot, t.prix)), 0)
+                        FROM reservations r
+                        INNER JOIN trajets t ON r.trajet_id = t.id
+                        WHERE r.payment_status = "declare_paye"
+                          AND DATE_FORMAT(r.paid_at, "%Y-%m") = DATE_FORMAT(CURDATE(), "%Y-%m")
+                    ) AS total_month,
+                    (SELECT COUNT(*) FROM trajets WHERE statut_trajet = "termine") AS completed_trips_count,
+                    (SELECT COUNT(*) FROM reservations WHERE payment_status = "declare_paye") AS paid_reservations_count';
+
+        $row = $this->pdo->query($sql)->fetch();
+        if (!$row) {
+            return [
+                'total_global' => 0.0,
+                'total_week' => 0.0,
+                'total_month' => 0.0,
+                'completed_trips_count' => 0,
+                'paid_reservations_count' => 0,
+            ];
+        }
+
+        return [
+            'total_global' => (float) ($row['total_global'] ?? 0),
+            'total_week' => (float) ($row['total_week'] ?? 0),
+            'total_month' => (float) ($row['total_month'] ?? 0),
+            'completed_trips_count' => (int) ($row['completed_trips_count'] ?? 0),
+            'paid_reservations_count' => (int) ($row['paid_reservations_count'] ?? 0),
+        ];
+    }
+
+    public function getRevenueByConducteur(): array
+    {
+        $sql = 'SELECT c.id AS conducteur_id,
+                       c.nom AS conducteur_nom,
+                       c.prenom AS conducteur_prenom,
+                       c.email AS conducteur_email,
+                       c.telephone AS conducteur_telephone,
+                       COUNT(DISTINCT t.id) AS completed_trips_count,
+                       COUNT(r.id) AS paid_reservations_count,
+                       COALESCE(SUM(COALESCE(r.paid_amount, r.prix_snapshot, t.prix)), 0) AS declared_total
+                FROM reservations r
+                INNER JOIN trajets t ON r.trajet_id = t.id
+                INNER JOIN utilisateurs c ON t.conducteur_id = c.id
+                WHERE r.payment_status = "declare_paye"
+                GROUP BY c.id
+                ORDER BY declared_total DESC, c.nom ASC, c.prenom ASC';
+
+        return $this->pdo->query($sql)->fetchAll();
+    }
+
+    public function getRevenueByWeek(): array
+    {
+        $sql = 'SELECT YEARWEEK(r.paid_at, 1) AS week_key,
+                       DATE_SUB(DATE(r.paid_at), INTERVAL WEEKDAY(r.paid_at) DAY) AS week_start,
+                       COUNT(r.id) AS paid_reservations_count,
+                       COALESCE(SUM(COALESCE(r.paid_amount, r.prix_snapshot, t.prix)), 0) AS declared_total
+                FROM reservations r
+                INNER JOIN trajets t ON r.trajet_id = t.id
+                WHERE r.payment_status = "declare_paye"
+                GROUP BY week_key, week_start
+                ORDER BY week_start DESC';
+
+        return $this->pdo->query($sql)->fetchAll();
+    }
+
+    public function getRevenueByMonth(): array
+    {
+        $sql = 'SELECT DATE_FORMAT(r.paid_at, "%Y-%m") AS month_key,
+                       COUNT(r.id) AS paid_reservations_count,
+                       COALESCE(SUM(COALESCE(r.paid_amount, r.prix_snapshot, t.prix)), 0) AS declared_total
+                FROM reservations r
+                INNER JOIN trajets t ON r.trajet_id = t.id
+                WHERE r.payment_status = "declare_paye"
+                GROUP BY month_key
+                ORDER BY month_key DESC';
+
+        return $this->pdo->query($sql)->fetchAll();
+    }
+
+    public function getCompletedTripsFinancialRows(): array
+    {
+        $sql = 'SELECT t.id,
+                       t.conducteur_id,
+                       t.ville_depart,
+                       t.ville_arrivee,
+                       t.date_depart,
+                       t.heure_depart,
+                       t.completed_at,
+                       c.nom AS conducteur_nom,
+                       c.prenom AS conducteur_prenom,
+                       c.email AS conducteur_email,
+                       c.telephone AS conducteur_telephone,
+                       COALESCE(SUM(CASE WHEN r.statut = "confirmee" THEN 1 ELSE 0 END), 0) AS confirmed_count,
+                       COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN 1 ELSE 0 END), 0) AS paid_declared_count,
+                       COALESCE(SUM(CASE WHEN r.payment_status = "declare_paye" THEN COALESCE(r.paid_amount, r.prix_snapshot, t.prix) ELSE 0 END), 0) AS declared_total
+                FROM trajets t
+                INNER JOIN utilisateurs c ON t.conducteur_id = c.id
+                LEFT JOIN reservations r ON r.trajet_id = t.id
+                WHERE t.statut_trajet = "termine"
+                GROUP BY t.id
+                ORDER BY t.completed_at DESC, t.id DESC';
+
+        return $this->pdo->query($sql)->fetchAll();
+    }
+
     // Write
 
-    public function createSafe(int $trajetId, int $passagerId): array
+    public function createSafe(int $trajetId, int $passagerId, array $reservationData = []): array
     {
         try {
             $this->pdo->beginTransaction();
@@ -305,11 +439,30 @@ class Reservation
                 return ['success' => false, 'message' => 'Vous avez deja reserve ce trajet.'];
             }
 
+            $reservationPrice = isset($reservationData['reservation_price'])
+                ? (float) $reservationData['reservation_price']
+                : null;
+            $prixSnapshot = $reservationPrice !== null ? $reservationPrice : (float) $trajet['prix'];
+
             $insert = $this->pdo->prepare(
-                'INSERT INTO reservations (trajet_id, passager_id, statut, prix_snapshot)
-                 VALUES (?, ?, "en_attente", ?)'
+                'INSERT INTO reservations (
+                    trajet_id, passager_id, statut, prix_snapshot,
+                    reservation_point_lat, reservation_point_lng, reservation_point_type,
+                    reservation_distance_km, reservation_duree_minutes, reservation_price
+                 )
+                 VALUES (?, ?, "en_attente", ?, ?, ?, ?, ?, ?, ?)'
             );
-            $insert->execute([$trajetId, $passagerId, (float) $trajet['prix']]);
+            $insert->execute([
+                $trajetId,
+                $passagerId,
+                $prixSnapshot,
+                $reservationData['reservation_point_lat'] ?? null,
+                $reservationData['reservation_point_lng'] ?? null,
+                $reservationData['reservation_point_type'] ?? null,
+                $reservationData['reservation_distance_km'] ?? null,
+                $reservationData['reservation_duree_minutes'] ?? null,
+                $reservationPrice,
+            ]);
             $reservationId = (int) $this->pdo->lastInsertId();
 
             $decrement = $this->pdo->prepare(

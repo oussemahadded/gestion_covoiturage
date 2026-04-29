@@ -51,8 +51,11 @@ require_once ROOT_PATH . '/views/layouts/header.php';
             <?= ui_icon('traceability', 'icon icon-sm') ?>
             <span>Traçabilité globale</span>
         </a>
+        <a href="<?= BASE_URL ?>/index.php?page=admin&action=finances" class="admin-nav-btn">
+            <?= ui_icon('price', 'icon icon-sm') ?>
+            <span>Recettes déclarées</span>
+        </a>
     </div>
 </div>
 
 <?php require_once ROOT_PATH . '/views/layouts/footer.php'; ?>
-

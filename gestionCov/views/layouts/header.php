@@ -10,6 +10,7 @@ if (!function_exists('ui_icon')) {
         $icons = [
             'car' => '<path d="M3 13l2-6a2 2 0 012-1h10a2 2 0 012 1l2 6"/><path d="M5 13h14v5a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H8v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-5z"/><circle cx="7.5" cy="14.5" r="1"/><circle cx="16.5" cy="14.5" r="1"/>',
             'route' => '<path d="M5 19a2 2 0 100-4 2 2 0 000 4z"/><path d="M19 9a2 2 0 100-4 2 2 0 000 4z"/><path d="M7 17h2a4 4 0 004-4v-2a4 4 0 014-4h0"/>',
+            'distance' => '<path d="M4 12h16"/><path d="M8 6l-4 6 4 6"/><path d="M16 6l4 6-4 6"/>',
             'departure' => '<path d="M12 3v18"/><path d="M7 8l5-5 5 5"/>',
             'arrival' => '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
             'calendar' => '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>',
@@ -93,6 +94,10 @@ $roleLabel = match ($role) {
     <meta name="description" content="CHAYA3NI - Plateforme de covoiturage pour la communauté Sesame.">
     <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') . ' - ' : '' ?>CHAYA3NI | Covoiturage</title>
     <link rel="stylesheet" href="<?= BASE_URL ?>/public/css/style.css">
+    <?php if (!empty($includeMap)): ?>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <?php endif; ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -158,6 +163,12 @@ $roleLabel = match ($role) {
                         <a href="<?= BASE_URL ?>/index.php?page=admin&action=traceability" class="nav-link">
                             <?= ui_icon('traceability', 'icon icon-sm nav-link-icon') ?>
                             <span>Traçabilité</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?= BASE_URL ?>/index.php?page=admin&action=finances" class="nav-link">
+                            <?= ui_icon('price', 'icon icon-sm nav-link-icon') ?>
+                            <span>Finances</span>
                         </a>
                     </li>
                 <?php endif; ?>
