@@ -41,14 +41,14 @@ if (!function_exists('trip_show_datetime')) {
 require_once ROOT_PATH . '/views/layouts/header.php';
 ?>
 
-<div class="container">
+<div class="container trip-show-page">
     <a href="<?= BASE_URL ?>/index.php?page=trajet" class="back-link">
         <?= ui_icon('arrow-left', 'icon icon-sm') ?>
         <span>Retour aux trajets</span>
     </a>
 
-    <div class="show-grid">
-        <article class="trajet-detail-card">
+    <div class="show-grid detail-grid">
+        <article class="trajet-detail-card detail-card app-card">
             <div class="detail-route">
                 <div class="detail-city">
                     <span class="detail-dot from"></span>
@@ -67,22 +67,22 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 </div>
             </div>
 
-            <div class="detail-meta-grid">
-                <div class="meta-item">
+            <div class="detail-meta-grid detail-kv-grid">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('calendar', 'icon icon-sm') ?></span>
                     <div>
                         <small>Date</small>
                         <strong><?= date('d/m/Y', strtotime($trajet['date_depart'])) ?></strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('clock', 'icon icon-sm') ?></span>
                     <div>
                         <small>Heure</small>
                         <strong><?= substr($trajet['heure_depart'], 0, 5) ?></strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('distance', 'icon icon-sm') ?></span>
                     <div>
                         <small>Distance du trajet</small>
@@ -95,7 +95,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                         </strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('clock', 'icon icon-sm') ?></span>
                     <div>
                         <small>Durée estimée</small>
@@ -108,7 +108,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                         </strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('price', 'icon icon-sm') ?></span>
                     <div>
                         <small>Prix par km</small>
@@ -121,21 +121,21 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                         </strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('seats', 'icon icon-sm') ?></span>
                     <div>
                         <small>Places restantes</small>
                         <strong><?= (int) $trajet['places_restantes'] ?> / <?= (int) $trajet['places_total'] ?></strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('price', 'icon icon-sm') ?></span>
                     <div>
                         <small>Prix final par passager</small>
                         <strong class="price-big"><?= number_format((float) $trajet['prix'], 2) ?> TND</strong>
                     </div>
                 </div>
-                <div class="meta-item">
+                <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('traceability', 'icon icon-sm') ?></span>
                     <div>
                         <?php $tripStatus = (string) ($trajet['statut_trajet'] ?? 'publie'); ?>
@@ -172,7 +172,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
         </article>
 
         <aside class="detail-sidebar">
-            <div class="driver-card">
+            <div class="driver-card section-card app-card">
                 <div class="driver-avatar">
                     <?= strtoupper(substr(htmlspecialchars($trajet['prenom'], ENT_QUOTES, 'UTF-8'), 0, 1)) ?>
                 </div>
@@ -191,7 +191,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                     <?php endif; ?>
                 </div>
                 <?php if (isset($_SESSION['user']) && (int) $_SESSION['user']['id'] !== (int) $trajet['conducteur_id']): ?>
-                    <a href="<?= BASE_URL ?>/index.php?page=message&action=conversation&contact=<?= (int) $trajet['conducteur_id'] ?>" class="btn btn-outline btn-sm btn-full" style="margin-top:.75rem;">
+                    <a href="<?= BASE_URL ?>/index.php?page=message&action=conversation&contact=<?= (int) $trajet['conducteur_id'] ?>" class="btn btn-outline btn-sm btn-full btn-spacing-top">
                         <?= ui_icon('messages', 'icon icon-sm') ?>
                         <span>Contacter</span>
                     </a>
@@ -203,7 +203,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 && in_array($_SESSION['user']['role'], ['etudiant', 'professeur'], true)
                 && (int) $_SESSION['user']['id'] !== (int) $trajet['conducteur_id']
             ): ?>
-                <div class="booking-card">
+                <div class="booking-card section-card app-card">
                     <?php if ($currentReservation): ?>
                         <?php
                         $status = $currentReservation['statut'];
@@ -281,22 +281,22 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                     </div>
                                 <?php endif; ?>
 
-                                <div class="reservation-point-warning" id="reservationPointWarning" style="display:none;"></div>
+                                <div class="reservation-point-warning is-hidden" id="reservationPointWarning"></div>
 
-                                <div class="reservation-point-summary" id="reservationPointSummary">
-                                    <div class="reservation-point-row">
+                                <div class="reservation-point-summary detail-kv-grid" id="reservationPointSummary">
+                                    <div class="reservation-point-row detail-kv-item">
                                         <small>Point sélectionné</small>
                                         <strong id="reservationPointValue">-</strong>
                                     </div>
-                                    <div class="reservation-point-row">
+                                    <div class="reservation-point-row detail-kv-item">
                                         <small>Distance facturée</small>
                                         <strong><span id="reservationDistanceValue">-</span> km</strong>
                                     </div>
-                                    <div class="reservation-point-row">
+                                    <div class="reservation-point-row detail-kv-item">
                                         <small>Durée estimée</small>
                                         <strong><span id="reservationDurationValue">-</span> min</strong>
                                     </div>
-                                    <div class="reservation-point-row reservation-price-preview">
+                                    <div class="reservation-point-row reservation-price-preview detail-kv-item">
                                         <small>Prix estimé pour votre trajet</small>
                                         <strong><span id="reservationPriceValue">-</span> TND</strong>
                                     </div>
@@ -311,7 +311,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                     <?php endif; ?>
                 </div>
             <?php elseif (isset($_SESSION['user']) && (int) $_SESSION['user']['id'] === (int) $trajet['conducteur_id']): ?>
-                <div class="booking-card">
+                <div class="booking-card section-card app-card">
                     <p>Vous avez proposé ce trajet.</p>
                     <a href="<?= BASE_URL ?>/index.php?page=trajet&action=myTrajets" class="btn btn-outline btn-full">
                         <?= ui_icon('car', 'icon icon-sm') ?>
@@ -319,7 +319,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                     </a>
                 </div>
             <?php elseif (!isset($_SESSION['user'])): ?>
-                <div class="booking-card">
+                <div class="booking-card section-card app-card">
                     <p>Connectez-vous pour réserver.</p>
                     <a href="<?= BASE_URL ?>/index.php?page=auth&action=login" class="btn btn-primary btn-full">
                         <?= ui_icon('login', 'icon icon-sm') ?>
@@ -330,18 +330,18 @@ require_once ROOT_PATH . '/views/layouts/header.php';
         </aside>
     </div>
 
-    <section class="reviews-section">
+    <section class="reviews-section section-card app-card">
         <h2>
             <?= ui_icon('star', 'icon icon-sm') ?>
             <span>Avis des passagers (<?= count($avisList) ?>)</span>
         </h2>
 
         <?php if (empty($avisList)): ?>
-            <p class="empty-state">Aucun avis pour ce trajet.</p>
+            <p class="empty-state empty-state-polished">Aucun avis pour ce trajet.</p>
         <?php else: ?>
             <div class="reviews-list">
                 <?php foreach ($avisList as $avis): ?>
-                    <article class="review-card">
+                    <article class="review-card app-card">
                         <div class="review-header">
                             <div class="review-avatar">
                                 <?= strtoupper(substr(htmlspecialchars($avis['prenom'], ENT_QUOTES, 'UTF-8'), 0, 1)) ?>
@@ -379,3 +379,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
 </div>
 
 <?php require_once ROOT_PATH . '/views/layouts/footer.php'; ?>
+
+
+
+

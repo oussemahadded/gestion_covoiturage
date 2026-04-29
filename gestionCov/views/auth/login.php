@@ -1,7 +1,7 @@
 <?php $pageTitle = 'Connexion'; require_once ROOT_PATH . '/views/layouts/header.php'; ?>
 
-<div class="auth-page">
-    <div class="auth-card">
+<div class="auth-page page-shell">
+    <div class="auth-card app-card section-card">
         <div class="auth-header">
             <span class="auth-icon-wrap"><?= ui_icon('login', 'icon icon-lg') ?></span>
             <h1>Connexion</h1>
@@ -13,7 +13,7 @@
         unset($_SESSION['form_errors']);
         ?>
         <?php if (!empty($errors)): ?>
-            <ul class="error-list">
+            <ul class="error-list app-alert">
                 <?php foreach ($errors as $e): ?>
                     <li><?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?></li>
                 <?php endforeach; ?>

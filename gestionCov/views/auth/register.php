@@ -8,8 +8,8 @@ require_once ROOT_PATH . '/views/layouts/header.php';
 $selectedRole = $old['role'] ?? 'etudiant';
 ?>
 
-<div class="auth-page">
-    <div class="auth-card auth-card--wide">
+<div class="auth-page page-shell">
+    <div class="auth-card auth-card--wide app-card section-card">
         <div class="auth-header">
             <span class="auth-icon-wrap"><?= ui_icon('register', 'icon icon-lg') ?></span>
             <h1>Créer un compte</h1>
@@ -17,7 +17,7 @@ $selectedRole = $old['role'] ?? 'etudiant';
         </div>
 
         <?php if (!empty($errors)): ?>
-            <ul class="error-list">
+            <ul class="error-list app-alert">
                 <?php foreach ($errors as $e): ?>
                     <li><?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?></li>
                 <?php endforeach; ?>
@@ -81,7 +81,7 @@ $selectedRole = $old['role'] ?? 'etudiant';
 
             <div class="form-group">
                 <label>Vous êtes :</label>
-                <div class="role-selector">
+                <div class="role-selector detail-grid">
                     <label class="role-option <?= $selectedRole === 'etudiant' ? 'selected' : '' ?>">
                         <input type="radio" name="role" value="etudiant" <?= $selectedRole === 'etudiant' ? 'checked' : '' ?>>
                         <span class="role-icon"><?= ui_icon('student', 'icon icon-md') ?></span>

@@ -92,7 +92,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 }
 ?>
 
-<div class="container">
+<div class="container admin-page traceability-page">
     <div class="page-header-row">
         <h1 class="page-title">
             <?= ui_icon('traceability', 'icon icon-md') ?>
@@ -104,28 +104,28 @@ if (!function_exists('admin_trip_status_icon_trace')) {
         </a>
     </div>
 
-    <section class="traceability-grid">
-        <article class="trace-card">
+    <section class="traceability-grid traceability-dashboard-grid kpi-grid">
+        <article class="trace-card kpi-card metric-card">
             <div class="trace-card-title">Total trajets</div>
             <div class="trace-card-value"><?= (int) ($traceStats['total_trajets'] ?? 0) ?></div>
         </article>
-        <article class="trace-card">
+        <article class="trace-card kpi-card metric-card">
             <div class="trace-card-title">Total réservations</div>
             <div class="trace-card-value"><?= (int) ($traceStats['total_reservations'] ?? 0) ?></div>
         </article>
-        <article class="trace-card">
+        <article class="trace-card kpi-card metric-card">
             <div class="trace-card-title">Réservations confirmées</div>
             <div class="trace-card-value"><?= (int) ($traceStats['reservations_confirmees'] ?? 0) ?></div>
         </article>
-        <article class="trace-card">
+        <article class="trace-card kpi-card metric-card">
             <div class="trace-card-title">Réservations en attente</div>
             <div class="trace-card-value"><?= (int) ($traceStats['reservations_en_attente'] ?? 0) ?></div>
         </article>
-        <article class="trace-card">
+        <article class="trace-card kpi-card metric-card">
             <div class="trace-card-title">Recette estimée confirmée</div>
             <div class="trace-card-value money-value"><?= number_format((float) ($traceStats['recette_confirmee_estimee'] ?? 0), 2) ?> TND</div>
         </article>
-        <article class="trace-card">
+        <article class="trace-card kpi-card metric-card">
             <div class="trace-card-title">Recette estimée totale (demandes actives)</div>
             <div class="trace-card-value money-value"><?= number_format((float) ($traceStats['recette_estimee_active'] ?? 0), 2) ?> TND</div>
         </article>
@@ -133,7 +133,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Filtres</h2>
-        <form method="GET" action="<?= BASE_URL ?>/index.php" class="search-form-card">
+        <form method="GET" action="<?= BASE_URL ?>/index.php" class="search-form-card filter-card">
             <input type="hidden" name="page" value="admin">
             <input type="hidden" name="action" value="traceability">
             <div class="search-grid">
@@ -172,7 +172,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                 </div>
             </div>
 
-            <div class="search-grid" style="margin-top:.8rem;">
+            <div class="search-grid search-grid-secondary">
                 <div class="form-group">
                     <label for="date_to">Date fin</label>
                     <input id="date_to" type="date" name="date_to" value="<?= htmlspecialchars((string) ($_GET['date_to'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
@@ -190,8 +190,8 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Traçabilité des réservations</h2>
-        <div class="table-wrapper">
-            <table class="data-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern">
                 <thead>
                 <tr>
                     <th>ID</th>
@@ -263,7 +263,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                             <td><?= admin_format_date((string) ($row['date_depart'] ?? '')) ?> <?= htmlspecialchars(substr((string) ($row['heure_depart'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= admin_format_datetime((string) ($row['reservation_created_at'] ?? '')) ?></td>
                             <td>
-                                <span class="status-badge status-<?= htmlspecialchars(admin_reservation_status_class($status), ENT_QUOTES, 'UTF-8') ?>">
+                                <span class="status-badge status-pill status-<?= htmlspecialchars(admin_reservation_status_class($status), ENT_QUOTES, 'UTF-8') ?>">
                                     <?= ui_icon(admin_reservation_status_icon($status), 'icon icon-xs') ?>
                                     <span><?= htmlspecialchars(admin_reservation_status_label($status), ENT_QUOTES, 'UTF-8') ?></span>
                                 </span>
@@ -315,8 +315,8 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Traçabilité des trajets</h2>
-        <div class="table-wrapper">
-            <table class="data-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern">
                 <thead>
                 <tr>
                     <th>ID</th>
@@ -408,7 +408,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Journal d'audit</h2>
-        <div class="table-wrapper">
+        <div class="table-wrapper data-card">
             <table class="data-table audit-log-table">
                 <thead>
                 <tr>
@@ -470,3 +470,4 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 </div>
 
 <?php require_once ROOT_PATH . '/views/layouts/footer.php'; ?>
+

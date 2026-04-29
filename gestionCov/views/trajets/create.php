@@ -38,7 +38,7 @@ if (!empty($old['date_depart'])) {
 }
 ?>
 
-<div class="container container--narrow">
+<div class="container container--narrow publish-ride-page">
     <a href="<?= BASE_URL ?>/index.php?page=trajet&action=myTrajets" class="back-link">
         <?= ui_icon('arrow-left', 'icon icon-sm') ?>
         <span>Mes trajets</span>
@@ -56,8 +56,15 @@ if (!empty($old['date_depart'])) {
         </ul>
     <?php endif; ?>
 
-    <div class="form-card premium-form-card">
-        <form action="<?= BASE_URL ?>/index.php?page=trajet&action=create" method="POST" class="date-fr-form">
+    <div class="form-card premium-form-card app-card section-card">
+        <form action="<?= BASE_URL ?>/index.php?page=trajet&action=create" method="POST" class="date-fr-form publish-ride-form">
+            <div class="publish-ride-steps" aria-hidden="true">
+                <span class="route-pill">1. Direction</span>
+                <span class="route-pill">2. Circuit</span>
+                <span class="route-pill">3. Prix et places</span>
+                <span class="route-pill">4. Date et heure</span>
+                <span class="route-pill">5. Confirmation</span>
+            </div>
             <div class="form-group">
                 <label>Direction du trajet</label>
                 <div class="trip-direction-selector" data-default-direction="<?= htmlspecialchars($direction, ENT_QUOTES, 'UTF-8') ?>">
@@ -97,7 +104,7 @@ if (!empty($old['date_depart'])) {
                 </div>
             </div>
 
-            <div class="map-picker-card">
+            <div class="map-picker-card map-card section-card">
                 <div class="map-picker-header">
                     <div>
                         <label class="map-picker-title">Point du trajet sur la carte</label>
@@ -130,7 +137,7 @@ if (!empty($old['date_depart'])) {
                     </div>
                 </div>
 
-                <div class="route-warning" id="routeWarning" style="display:none;"></div>
+                <div class="route-warning is-hidden" id="routeWarning"></div>
 
                 <input type="hidden" id="point_lat" name="point_lat" value="<?= htmlspecialchars((string) $pointLat, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" id="point_lng" name="point_lng" value="<?= htmlspecialchars((string) $pointLng, ENT_QUOTES, 'UTF-8') ?>">
@@ -139,7 +146,7 @@ if (!empty($old['date_depart'])) {
                 <input type="hidden" id="route_geometry" name="route_geometry" value="<?= htmlspecialchars((string) $routeGeometry, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" id="route_provider" name="route_provider" value="<?= htmlspecialchars((string) $routeProvider, ENT_QUOTES, 'UTF-8') ?>">
 
-                <div class="price-estimate-box">
+                <div class="price-estimate-box section-card">
                     <div class="form-row">
                         <div class="form-group">
                             <label><?= ui_icon('price', 'icon icon-xs') ?> Tarif appliqué aux nouveaux trajets</label>

@@ -93,7 +93,7 @@ if (!function_exists('admin_trip_status_icon_detail')) {
 }
 ?>
 
-<div class="container">
+<div class="container admin-page">
     <div class="page-header-row">
         <h1 class="page-title">
             <?= ui_icon('route', 'icon icon-md') ?>
@@ -105,8 +105,8 @@ if (!function_exists('admin_trip_status_icon_detail')) {
         </a>
     </div>
 
-    <div class="admin-detail-grid">
-        <section class="admin-detail-card">
+    <div class="admin-detail-grid detail-grid">
+        <section class="admin-detail-card detail-card app-card">
             <h2>Informations trajet</h2>
             <p><strong>Trajet:</strong> <?= htmlspecialchars((string) ($trip['ville_depart'] ?? ''), ENT_QUOTES, 'UTF-8') ?> → <?= htmlspecialchars((string) ($trip['ville_arrivee'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
             <p><strong>Date:</strong> <?= admin_detail_date((string) ($trip['date_depart'] ?? '')) ?></p>
@@ -161,7 +161,7 @@ if (!function_exists('admin_trip_status_icon_detail')) {
             <p><strong>Mis à jour le:</strong> <?= admin_detail_datetime((string) ($trip['updated_at'] ?? '')) ?></p>
         </section>
 
-        <section class="admin-detail-card">
+        <section class="admin-detail-card detail-card app-card">
             <h2>Conducteur</h2>
             <p><strong>Nom:</strong> <?= htmlspecialchars(trim(($trip['conducteur_prenom'] ?? '') . ' ' . ($trip['conducteur_nom'] ?? '')), ENT_QUOTES, 'UTF-8') ?></p>
             <p><strong>Email:</strong> <?= htmlspecialchars((string) ($trip['conducteur_email'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></p>
@@ -170,7 +170,7 @@ if (!function_exists('admin_trip_status_icon_detail')) {
             <p><strong>Statut compte:</strong> <?= htmlspecialchars((string) ($trip['conducteur_statut_compte'] ?? 'actif'), ENT_QUOTES, 'UTF-8') ?></p>
         </section>
 
-        <section class="admin-detail-card">
+        <section class="admin-detail-card detail-card app-card">
             <h2>Résumé financier estimé</h2>
             <p><strong>Total réservations:</strong> <?= (int) ($tripSummary['total_reservations'] ?? 0) ?></p>
             <p><strong>Confirmées:</strong> <?= (int) ($tripSummary['confirmed_count'] ?? 0) ?></p>
@@ -183,10 +183,10 @@ if (!function_exists('admin_trip_status_icon_detail')) {
         </section>
 
         <?php if (!empty($trip['route_geometry'])): ?>
-            <section class="admin-detail-card">
+            <section class="admin-detail-card detail-card app-card">
                 <h2>Circuit proposé</h2>
                 <div id="tripPreviewMap"
-                     class="circuit-preview-map"
+                     class="circuit-preview-map compact-map"
                      data-sesame-lat="<?= htmlspecialchars((string) (defined('SESAME_LAT') ? SESAME_LAT : 0), ENT_QUOTES, 'UTF-8') ?>"
                      data-sesame-lng="<?= htmlspecialchars((string) (defined('SESAME_LNG') ? SESAME_LNG : 0), ENT_QUOTES, 'UTF-8') ?>"
                      data-route-geometry="<?= htmlspecialchars((string) $trip['route_geometry'], ENT_QUOTES, 'UTF-8') ?>">
@@ -197,8 +197,8 @@ if (!function_exists('admin_trip_status_icon_detail')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Réservations liées à ce trajet</h2>
-        <div class="table-wrapper">
-            <table class="data-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern">
                 <thead>
                 <tr>
                     <th>ID</th>
@@ -250,7 +250,7 @@ if (!function_exists('admin_trip_status_icon_detail')) {
                                 <small><?= htmlspecialchars((string) ($row['passager_telephone'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></small>
                             </td>
                             <td>
-                                <span class="status-badge status-<?= htmlspecialchars(admin_res_status_class($status), ENT_QUOTES, 'UTF-8') ?>">
+                                <span class="status-badge status-pill status-<?= htmlspecialchars(admin_res_status_class($status), ENT_QUOTES, 'UTF-8') ?>">
                                     <?= ui_icon(admin_res_status_icon($status), 'icon icon-xs') ?>
                                     <span><?= htmlspecialchars(admin_res_status_label($status), ENT_QUOTES, 'UTF-8') ?></span>
                                 </span>
@@ -303,3 +303,4 @@ if (!function_exists('admin_trip_status_icon_detail')) {
 </div>
 
 <?php require_once ROOT_PATH . '/views/layouts/footer.php'; ?>
+

@@ -12,13 +12,13 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
 }
 ?>
 
-<div class="container">
+<div class="container search-page">
     <h1 class="page-title">
         <?= ui_icon('search', 'icon icon-md') ?>
         <span>Rechercher un trajet</span>
     </h1>
 
-    <form action="<?= BASE_URL ?>/index.php" method="GET" class="search-form-card date-fr-form">
+    <form action="<?= BASE_URL ?>/index.php" method="GET" class="search-form-card filter-card date-fr-form">
         <input type="hidden" name="page" value="trajet">
         <input type="hidden" name="action" value="index">
         <div class="search-grid">
@@ -59,11 +59,11 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
     </form>
 
     <?php if ($searchPerformed): ?>
-        <p class="results-count"><?= count($trajets) ?> trajet(s) trouvé(s)</p>
+        <p class="results-count meta-muted"><?= count($trajets) ?> trajet(s) trouvé(s)</p>
     <?php endif; ?>
 
     <?php if (empty($trajets) && $searchPerformed): ?>
-        <div class="empty-state-box">
+        <div class="empty-state-box empty-state-polished">
             <span class="empty-illustration"><?= ui_icon('warning', 'icon icon-xl') ?></span>
             <p>Aucun trajet ne correspond à votre recherche.</p>
             <a href="<?= BASE_URL ?>/index.php?page=trajet" class="btn btn-outline">
@@ -74,8 +74,8 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
     <?php elseif (!empty($trajets)): ?>
         <div class="trajets-list">
             <?php foreach ($trajets as $t): ?>
-                <article class="trajet-list-card">
-                    <div class="tlc-route">
+                <article class="trajet-list-card route-card data-card">
+                    <div class="tlc-route route-timeline">
                         <div class="route-line">
                             <span class="dot dot-from"></span>
                             <span class="route-dash"></span>
@@ -86,7 +86,7 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
                             <span><?= htmlspecialchars($t['ville_arrivee'], ENT_QUOTES, 'UTF-8') ?></span>
                         </div>
                     </div>
-                    <div class="tlc-info">
+                    <div class="tlc-info meta-muted">
                         <span><?= ui_icon('calendar', 'icon icon-xs') ?> <?= date('d/m/Y', strtotime($t['date_depart'])) ?></span>
                         <span><?= ui_icon('clock', 'icon icon-xs') ?> <?= substr($t['heure_depart'], 0, 5) ?></span>
                         <?php if (isset($t['distance_km']) && $t['distance_km'] !== null): ?>
@@ -101,7 +101,7 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
                         </span>
                     </div>
                     <div class="tlc-action">
-                        <span class="tlc-price"><?= number_format((float) $t['prix'], 2) ?> TND</span>
+                        <span class="tlc-price money-value"><?= number_format((float) $t['prix'], 2) ?> TND</span>
                         <a href="<?= BASE_URL ?>/index.php?page=trajet&action=show&id=<?= (int) $t['id'] ?>" class="btn btn-primary btn-sm">
                             <?= ui_icon('view', 'icon icon-xs') ?>
                             <span>Voir</span>

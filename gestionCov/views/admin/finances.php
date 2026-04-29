@@ -43,7 +43,7 @@ if (!function_exists('admin_finance_month')) {
 }
 ?>
 
-<div class="container">
+<div class="container admin-page finance-page">
     <div class="page-header-row">
         <h1 class="page-title">
             <?= ui_icon('price', 'icon icon-md') ?>
@@ -55,24 +55,24 @@ if (!function_exists('admin_finance_month')) {
         </a>
     </div>
 
-    <section class="finance-grid">
-        <article class="finance-card">
+    <section class="finance-grid finance-dashboard-grid kpi-grid">
+        <article class="finance-card kpi-card metric-card">
             <div class="finance-card-title">Total global déclaré</div>
             <div class="finance-card-value money-value"><?= admin_finance_money($financeStats['total_global'] ?? 0) ?></div>
         </article>
-        <article class="finance-card">
+        <article class="finance-card kpi-card metric-card">
             <div class="finance-card-title">Total déclaré cette semaine</div>
             <div class="finance-card-value money-value"><?= admin_finance_money($financeStats['total_week'] ?? 0) ?></div>
         </article>
-        <article class="finance-card">
+        <article class="finance-card kpi-card metric-card">
             <div class="finance-card-title">Total déclaré ce mois</div>
             <div class="finance-card-value money-value"><?= admin_finance_money($financeStats['total_month'] ?? 0) ?></div>
         </article>
-        <article class="finance-card">
+        <article class="finance-card kpi-card metric-card">
             <div class="finance-card-title">Trajets terminés</div>
             <div class="finance-card-value"><?= (int) ($financeStats['completed_trips_count'] ?? 0) ?></div>
         </article>
-        <article class="finance-card">
+        <article class="finance-card kpi-card metric-card">
             <div class="finance-card-title">Réservations déclarées payées</div>
             <div class="finance-card-value"><?= (int) ($financeStats['paid_reservations_count'] ?? 0) ?></div>
         </article>
@@ -80,8 +80,8 @@ if (!function_exists('admin_finance_month')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Recette conducteur déclarée</h2>
-        <div class="table-wrapper">
-            <table class="data-table finance-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern finance-table">
                 <thead>
                 <tr>
                     <th>Conducteur</th>
@@ -114,8 +114,8 @@ if (!function_exists('admin_finance_month')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Recette déclarée par semaine</h2>
-        <div class="table-wrapper">
-            <table class="data-table finance-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern finance-table">
                 <thead>
                 <tr>
                     <th>Semaine</th>
@@ -142,8 +142,8 @@ if (!function_exists('admin_finance_month')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Recette déclarée par mois</h2>
-        <div class="table-wrapper">
-            <table class="data-table finance-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern finance-table">
                 <thead>
                 <tr>
                     <th>Mois</th>
@@ -170,8 +170,8 @@ if (!function_exists('admin_finance_month')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Trajets terminés</h2>
-        <div class="table-wrapper">
-            <table class="data-table finance-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern finance-table">
                 <thead>
                 <tr>
                     <th>Trip ID</th>
@@ -216,3 +216,4 @@ if (!function_exists('admin_finance_month')) {
 </div>
 
 <?php require_once ROOT_PATH . '/views/layouts/footer.php'; ?>
+

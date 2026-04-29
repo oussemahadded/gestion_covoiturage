@@ -45,7 +45,7 @@ if (!function_exists('format_trip_datetime')) {
 require_once ROOT_PATH . '/views/layouts/header.php';
 ?>
 
-<div class="container">
+<div class="container conducteur-trips-page">
     <div class="page-header-row">
         <h1 class="page-title">
             <?= ui_icon('car', 'icon icon-md') ?>
@@ -58,7 +58,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
     </div>
 
     <?php if (empty($trajets)): ?>
-        <div class="empty-state-box">
+        <div class="empty-state-box empty-state-polished">
             <span class="empty-illustration"><?= ui_icon('car', 'icon icon-xl') ?></span>
             <p>Vous n'avez pas encore proposé de trajet.</p>
             <a href="<?= BASE_URL ?>/index.php?page=trajet&action=create" class="btn btn-primary">
@@ -67,8 +67,8 @@ require_once ROOT_PATH . '/views/layouts/header.php';
             </a>
         </div>
     <?php else: ?>
-        <div class="table-wrapper">
-            <table class="data-table">
+        <div class="table-wrapper data-card">
+            <table class="data-table table-modern">
                 <thead>
                 <tr>
                     <th>Trajet</th>
@@ -106,7 +106,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                 -
                             <?php endif; ?>
                         </td>
-                        <td><?= number_format((float) $t['prix'], 2) ?> TND</td>
+                        <td><span class="money-value"><?= number_format((float) $t['prix'], 2) ?> TND</span></td>
                         <td>
                             <span class="places-badge <?= (int) $t['places_restantes'] === 0 ? 'places-full' : '' ?>">
                                 <?= (int) $t['places_restantes'] ?>/<?= (int) $t['places_total'] ?>
@@ -130,7 +130,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                 <small class="trip-status-note">Aucune réservation confirmée à déclarer.</small>
                             <?php endif; ?>
                         </td>
-                        <td class="table-actions">
+                        <td class="table-actions action-group">
                             <a href="<?= BASE_URL ?>/index.php?page=trajet&action=show&id=<?= (int) $t['id'] ?>" class="btn btn-outline btn-xs">
                                 <?= ui_icon('view', 'icon icon-xs') ?>
                                 <span>Voir</span>
