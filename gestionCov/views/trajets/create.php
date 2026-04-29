@@ -27,7 +27,7 @@ $distanceKm = $old['distance_km'] ?? '';
 $dureeMinutes = $old['duree_minutes'] ?? '';
 $routeGeometry = $old['route_geometry'] ?? '';
 $routeProvider = $old['route_provider'] ?? (defined('ROUTING_PROVIDER') ? ROUTING_PROVIDER : 'osrm');
-$prixParKm = $old['prix_par_km'] ?? (defined('DEFAULT_PRIX_PAR_KM') ? DEFAULT_PRIX_PAR_KM : 1.0);
+$prixParKm = $old['prix_par_km'] ?? ($currentPrixParKm ?? 1.0);
 
 $dateDisplay = '';
 if (!empty($old['date_depart'])) {
@@ -142,35 +142,36 @@ if (!empty($old['date_depart'])) {
                 <div class="price-estimate-box">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="prix_par_km">Prix par km (TND)</label>
-                            <input type="number"
-                                   id="prix_par_km"
-                                   name="prix_par_km"
-                                   step="0.001"
-                                   min="0"
-                                   value="<?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?>"
-                                   required>
+                            <label><?= ui_icon('price', 'icon icon-xs') ?> Tarif appliqué aux nouveaux trajets</label>
+                            <div class="admin-rate-display">
+                                <span class="admin-rate-value"><?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                <span class="admin-rate-unit">TND / km</span>
+                                <?= ui_icon('lock', 'icon icon-xs') ?>
+                            </div>
+                            <input type="hidden" id="prix_par_km" name="prix_par_km" value="<?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
                         <div class="form-group">
-                            <label>Prix proposé</label>
+                            <label>Prix calculé automatiquement</label>
                             <div class="suggested-price-row">
                                 <span class="suggested-price-value" id="suggestedPriceValue">-</span>
                                 <span class="suggested-price-unit">TND</span>
-                                <button type="button" class="btn btn-outline btn-xs apply-suggested-price" id="applySuggestedPrice">Appliquer le prix proposé</button>
                             </div>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="prix">Prix final par passager (TND) *</label>
+                            <label for="prix">Prix final par passager (TND)</label>
                             <input type="number"
                                    id="prix"
                                    name="prix"
                                    step="0.01"
                                    min="0"
                                    value="<?= htmlspecialchars((string) ($old['prix'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                   placeholder="15.000"
-                                   required>
+                                   placeholder="0.00"
+                                   readonly
+                                   tabindex="-1"
+                                   class="input-computed">
+                            <p class="form-hint"><?= ui_icon('info', 'icon icon-xs') ?> Prix calculé automatiquement selon la distance du trajet.</p>
                         </div>
                         <div class="form-group">
                             <label for="places_total"><?= ui_icon('seats', 'icon icon-xs') ?> Nombre de places *</label>

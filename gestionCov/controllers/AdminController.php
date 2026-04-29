@@ -332,4 +332,44 @@ class AdminController
 
         require_once ROOT_PATH . '/views/admin/reservation_details.php';
     }
+
+    public function settings(): void
+    {
+        require_once ROOT_PATH . '/models/AppSetting.php';
+        $settingModel = new AppSetting();
+        $currentPrixParKm = $settingModel->getPrixParKm();
+
+        require_once ROOT_PATH . '/views/admin/settings.php';
+    }
+
+    public function updatePricing(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(BASE_URL . '/index.php?page=admin&action=settings');
+        }
+
+        $prixParKmRaw = trim((string) ($_POST['prix_par_km'] ?? ''));
+        if ($prixParKmRaw === '' || !is_numeric($prixParKmRaw) || (float) $prixParKmRaw <= 0) {
+            $this->flash('error', 'Tarif kilométrique invalide.');
+            $this->redirect(BASE_URL . '/index.php?page=admin&action=settings');
+        }
+
+        $prixParKm = (float) $prixParKmRaw;
+
+        require_once ROOT_PATH . '/models/AppSetting.php';
+        $settingModel = new AppSetting();
+        $ok = $settingModel->updatePrixParKm($prixParKm);
+
+        if ($ok) {
+            $this->audit('settings_updated', 'app_setting', null, [
+                'setting_key' => 'prix_par_km',
+                'new_value' => $prixParKm,
+            ]);
+            $this->flash('success', 'Tarif kilométrique mis à jour avec succès.');
+        } else {
+            $this->flash('error', 'Impossible de mettre à jour le tarif kilométrique.');
+        }
+
+        $this->redirect(BASE_URL . '/index.php?page=admin&action=settings');
+    }
 }

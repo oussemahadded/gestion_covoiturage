@@ -55,6 +55,10 @@ require_once ROOT_PATH . '/views/layouts/header.php';
             <?= ui_icon('price', 'icon icon-sm') ?>
             <span>Recettes déclarées</span>
         </a>
+        <a href="<?= BASE_URL ?>/index.php?page=admin&action=settings" class="admin-nav-btn">
+            <?= ui_icon('edit', 'icon icon-sm') ?>
+            <span>Paramètres</span>
+        </a>
     </div>
 </div>
 

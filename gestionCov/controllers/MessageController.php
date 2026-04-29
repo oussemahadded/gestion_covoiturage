@@ -38,6 +38,11 @@ class MessageController
             http_response_code(403);
             die('Accès interdit.');
         }
+
+        if ($_SESSION['user']['role'] === 'admin') {
+            $this->flash('error', 'La messagerie n’est pas disponible pour le compte administrateur.');
+            $this->redirect(BASE_URL . '/index.php?page=admin');
+        }
     }
 
     private function audit(string $action, string $entityType, ?int $entityId = null, array $details = []): void

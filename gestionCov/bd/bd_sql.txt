@@ -285,3 +285,16 @@ CREATE INDEX idx_audit_created_at ON audit_logs(created_at);
 -- ADD COLUMN reservation_distance_km DECIMAL(7,2) NULL AFTER reservation_point_type,
 -- ADD COLUMN reservation_duree_minutes INT NULL AFTER reservation_distance_km,
 -- ADD COLUMN reservation_price DECIMAL(6,2) NULL AFTER reservation_duree_minutes;
+
+-- ==========================================================
+-- MIGRATION : PARAMÈTRES ADMINISTRATIFS (TARIF KILOMÉTRIQUE)
+-- ==========================================================
+-- CREATE TABLE IF NOT EXISTS app_settings (
+--     setting_key VARCHAR(100) PRIMARY KEY,
+--     setting_value VARCHAR(255) NOT NULL,
+--     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+-- );
+--
+-- INSERT INTO app_settings (setting_key, setting_value)
+-- VALUES ('prix_par_km', '1.000')
+-- ON DUPLICATE KEY UPDATE setting_value = setting_value;

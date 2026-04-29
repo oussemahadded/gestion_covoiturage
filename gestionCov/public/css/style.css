@@ -2656,3 +2656,79 @@ button {
 .footer.footer-minimal p {
     margin: 0;
 }
+
+/* Driver Request Map Preview */
+.request-point-map-card {
+    margin-top: 10px;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.driver-request-map {
+    height: 180px;
+    width: 100%;
+    z-index: 1;
+}
+
+@media (max-width: 768px) {
+    .driver-request-map {
+        height: 200px;
+    }
+}
+
+/* Driver Request Cards Layout */
+.reservation-request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.reservation-request-card {
+    background: #fff;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.request-main-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+@media (min-width: 992px) {
+    .request-main-grid {
+        grid-template-columns: 1.5fr 1.5fr 2fr 300px;
+        align-items: start;
+    }
+}
+
+.request-route {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.request-datetime {
+    color: var(--clr-text-muted);
+    font-size: 0.95rem;
+}
+
+.request-passenger strong {
+    font-size: 1.05rem;
+}
+
+.request-coordinates {
+    font-size: 0.75rem;
+    color: var(--clr-text-muted);
+    font-family: monospace;
+    margin-top: 0.25rem;
+}
+
+.request-financial {
+    font-size: 0.9rem;
+    color: var(--clr-text);
+}

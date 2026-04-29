@@ -168,7 +168,7 @@ class TrajetController
         $this->requireConducteur();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = $this->sanitizeTrajetInput($_POST);
+            $data = $this->sanitizeTrajetInput($_POST, null);
             $errors = $this->validateTrajetInput($data, $_POST);
 
             if (empty($errors)) {
@@ -203,6 +203,10 @@ class TrajetController
             $_SESSION['form_data'] = $data;
         }
 
+        require_once ROOT_PATH . '/models/AppSetting.php';
+        $settingModel = new AppSetting();
+        $currentPrixParKm = $settingModel->getPrixParKm();
+
         require_once ROOT_PATH . '/views/trajets/create.php';
     }
 
@@ -218,7 +222,7 @@ class TrajetController
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $data = $this->sanitizeTrajetInput($_POST);
+            $data = $this->sanitizeTrajetInput($_POST, $trajet);
             $errors = $this->validateTrajetInput($data, $_POST);
 
             if (empty($errors)) {
@@ -334,14 +338,13 @@ class TrajetController
         $this->redirect(BASE_URL . '/index.php?page=trajet&action=myTrajets');
     }
 
-    private function sanitizeTrajetInput(array $post): array
+    private function sanitizeTrajetInput(array $post, ?array $existingTrajet = null): array
     {
         $villeDepart = trim(htmlspecialchars($post['ville_depart'] ?? '', ENT_QUOTES, 'UTF-8'));
         $villeArrivee = trim(htmlspecialchars($post['ville_arrivee'] ?? '', ENT_QUOTES, 'UTF-8'));
 
         $distanceRaw = trim((string) ($post['distance_km'] ?? ''));
         $durationRaw = trim((string) ($post['duree_minutes'] ?? ''));
-        $prixParKmRaw = trim((string) ($post['prix_par_km'] ?? ''));
         $pointLatRaw = trim((string) ($post['point_lat'] ?? ''));
         $pointLngRaw = trim((string) ($post['point_lng'] ?? ''));
         $routeGeometryRaw = trim((string) ($post['route_geometry'] ?? ''));
@@ -349,32 +352,44 @@ class TrajetController
 
         $distanceKm = $distanceRaw === '' || !is_numeric($distanceRaw) ? null : (float) $distanceRaw;
         $dureeMinutes = $durationRaw === '' || !is_numeric($durationRaw) ? null : (int) $durationRaw;
-        $prixParKm = $prixParKmRaw === '' || !is_numeric($prixParKmRaw)
-            ? (float) DEFAULT_PRIX_PAR_KM
-            : (float) $prixParKmRaw;
+
+        // Security: always use system-defined rate — ignore any client-submitted prix_par_km.
+        if ($existingTrajet !== null && isset($existingTrajet['prix_par_km'])) {
+            $prixParKm = (float) $existingTrajet['prix_par_km'];
+        } else {
+            require_once ROOT_PATH . '/models/AppSetting.php';
+            $settingModel = new AppSetting();
+            $prixParKm = $settingModel->getPrixParKm();
+        }
+
         $pointLat = $pointLatRaw === '' || !is_numeric($pointLatRaw) ? null : (float) $pointLatRaw;
         $pointLng = $pointLngRaw === '' || !is_numeric($pointLngRaw) ? null : (float) $pointLngRaw;
         $routeGeometry = $routeGeometryRaw === '' ? null : $routeGeometryRaw;
         $routeProvider = $routeProviderRaw !== '' ? $routeProviderRaw : ROUTING_PROVIDER;
 
+        // Security: compute prix server-side; never trust client-submitted prix.
+        $prix = ($distanceKm !== null && $distanceKm > 0)
+            ? round($distanceKm * $prixParKm, 2)
+            : 0.0;
+
         return [
-            'ville_depart' => $this->normalizeSesameCity($villeDepart),
-            'ville_arrivee' => $this->normalizeSesameCity($villeArrivee),
-            'date_depart' => $this->normalizeDateInput(
+            'ville_depart'   => $this->normalizeSesameCity($villeDepart),
+            'ville_arrivee'  => $this->normalizeSesameCity($villeArrivee),
+            'date_depart'    => $this->normalizeDateInput(
                 (string) ($post['date_depart'] ?? ''),
                 (string) ($post['date_depart_display'] ?? '')
             ),
-            'heure_depart' => trim((string) ($post['heure_depart'] ?? '')),
-            'distance_km' => $distanceKm,
-            'duree_minutes' => $dureeMinutes,
-            'prix_par_km' => $prixParKm,
-            'point_lat' => $pointLat,
-            'point_lng' => $pointLng,
+            'heure_depart'   => trim((string) ($post['heure_depart'] ?? '')),
+            'distance_km'    => $distanceKm,
+            'duree_minutes'  => $dureeMinutes,
+            'prix_par_km'    => $prixParKm,
+            'point_lat'      => $pointLat,
+            'point_lng'      => $pointLng,
             'route_geometry' => $routeGeometry,
             'route_provider' => $routeProvider,
-            'prix' => (float) ($post['prix'] ?? 0),
-            'places_total' => (int) ($post['places_total'] ?? 0),
-            'description' => trim(htmlspecialchars($post['description'] ?? '', ENT_QUOTES, 'UTF-8')),
+            'prix'           => $prix,
+            'places_total'   => (int) ($post['places_total'] ?? 0),
+            'description'    => trim(htmlspecialchars($post['description'] ?? '', ENT_QUOTES, 'UTF-8')),
         ];
     }
 
@@ -419,6 +434,10 @@ class TrajetController
             $errors[] = 'Longitude hors limite.';
         }
 
+        // Distance is mandatory — prix is computed from it server-side.
+        if ($data['distance_km'] === null || $data['distance_km'] <= 0) {
+            $errors[] = 'Distance du trajet invalide. Veuillez sélectionner un point sur la carte pour calculer la route.';
+        }
 
         $durationRaw = trim((string) ($rawPost['duree_minutes'] ?? ''));
         if ($durationRaw !== '' && !is_numeric($durationRaw)) {
@@ -428,13 +447,7 @@ class TrajetController
             $errors[] = 'La durée ne peut pas être négative.';
         }
 
-        $prixParKmRaw = trim((string) ($rawPost['prix_par_km'] ?? ''));
-        if ($prixParKmRaw !== '' && !is_numeric($prixParKmRaw)) {
-            $errors[] = 'Prix par km invalide.';
-        }
-        if ($data['prix_par_km'] < 0) {
-            $errors[] = 'Le prix par km ne peut pas être négatif.';
-        }
+        // prix_par_km is now system-controlled — no client validation needed.
 
         if ($data['date_depart'] === '') {
             $errors[] = 'Date de départ obligatoire.';
@@ -491,6 +504,9 @@ class TrajetController
                 $data['route_provider'] = 'haversine_fallback';
                 $data['route_geometry'] = null;
             }
+
+            // Recompute prix after distance may have been corrected.
+            $data['prix'] = round((float) $data['distance_km'] * (float) $data['prix_par_km'], 2);
         }
 
         return $errors;

@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initTripDirectionSelector();
     initTripMap();
     initReservationPointPicker();
+    initTripPreviewMaps();
+    initDriverRequestMaps();
 });
 
 function initMobileNav() {
@@ -363,10 +365,7 @@ function initTripMap() {
     const prixParKmInput = document.getElementById('prix_par_km');
     const prixInput = document.getElementById('prix');
     const suggestedPriceValue = document.getElementById('suggestedPriceValue');
-    const applySuggestedBtn = document.getElementById('applySuggestedPrice');
-
-    let priceManuallyEdited = false;
-    let initialSuggestedSet = false;
+    // applySuggestedPrice button removed — price is always auto-computed.
 
     const map = L.map(mapEl, { zoomControl: true }).setView([sesameLat, sesameLng], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -404,12 +403,15 @@ function initTripMap() {
         if (routeGeometryInput) routeGeometryInput.value = geometry ? serializeRouteGeometry(geometry) : '';
     };
 
+    // Always force-apply the computed price (priceManuallyEdited is always false).
+    const applyComputedPrice = () => {
+        updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, false, null);
+    };
+
     const updateRoute = async () => {
         if (!hasPoint || !Number.isFinite(selectedLat) || !Number.isFinite(selectedLng)) {
             updateRouteSummary(null, null, null, distanceValue, durationValue, routeWarning);
-            updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
-                initialSuggestedSet = true;
-            });
+            applyComputedPrice();
             return;
         }
 
@@ -446,16 +448,7 @@ function initTripMap() {
             updateHiddenRoute(haversineKm, null, 'haversine_fallback', fallbackGeometry);
         }
 
-        updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
-            if (!initialSuggestedSet) {
-                const suggested = parseFloat(suggestedPriceValue?.textContent || '');
-                const current = prixInput && prixInput.value !== '' ? parseFloat(prixInput.value) : null;
-                if (Number.isFinite(suggested) && Number.isFinite(current) && Math.abs(suggested - current) > 0.01) {
-                    priceManuallyEdited = true;
-                }
-                initialSuggestedSet = true;
-            }
-        });
+        applyComputedPrice();
     };
 
     const existingGeometryRaw = routeGeometryInput?.value || '';
@@ -502,33 +495,13 @@ function initTripMap() {
         });
     });
 
-    if (prixInput) {
-        prixInput.addEventListener('input', () => {
-            priceManuallyEdited = true;
-        });
-    }
-
-    if (prixParKmInput) {
-        prixParKmInput.addEventListener('input', () => {
-            updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
-                initialSuggestedSet = true;
-            });
-        });
-    }
-
-    if (applySuggestedBtn) {
-        applySuggestedBtn.addEventListener('click', () => {
-            priceManuallyEdited = false;
-            applySuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue);
-        });
-    }
+    // Prix input is readonly — no manual edit listener needed.
+    // Prix par km is hidden/readonly — no manual edit listener needed.
 
     if (hasPoint && !existingGeometryRaw) {
         updateRoute();
     } else {
-        updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue, priceManuallyEdited, () => {
-            initialSuggestedSet = true;
-        });
+        applyComputedPrice();
     }
 
     initTripPreviewMaps();
@@ -892,26 +865,11 @@ function updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggeste
     const suggested = Math.round(distanceKm * prixParKm * 100) / 100;
     suggestedPriceValue.textContent = suggested.toFixed(2);
 
-    if (prixInput && !priceManuallyEdited) {
-        const current = prixInput.value !== '' ? parseFloat(prixInput.value) : null;
-        if (!Number.isFinite(current) || Math.abs(current - suggested) <= 0.01) {
-            prixInput.value = suggested.toFixed(2);
-        }
+    if (prixInput) {
+        prixInput.value = suggested.toFixed(2);
     }
 
     if (typeof onUpdated === 'function') onUpdated();
-}
-
-function applySuggestedPrice(distanceInput, prixParKmInput, prixInput, suggestedPriceValue) {
-    if (!distanceInput || !prixParKmInput || !prixInput || !suggestedPriceValue) return;
-    const distanceKm = parseFloat(distanceInput.value || '');
-    const prixParKm = parseFloat(prixParKmInput.value || '');
-
-    if (!Number.isFinite(distanceKm) || !Number.isFinite(prixParKm)) return;
-
-    const suggested = Math.round(distanceKm * prixParKm * 100) / 100;
-    prixInput.value = suggested.toFixed(2);
-    suggestedPriceValue.textContent = suggested.toFixed(2);
 }
 
 function serializeRouteGeometry(geometry) {
@@ -965,5 +923,60 @@ function initTripPreviewMaps() {
         }
 
         drawRouteLine(geometry, map);
+    });
+}
+
+function initDriverRequestMaps() {
+    const requestMaps = document.querySelectorAll('.driver-request-map');
+    if (!requestMaps.length || typeof window.L === 'undefined') return;
+
+    requestMaps.forEach((mapEl) => {
+        const rawGeometry = mapEl.dataset.routeGeometry || '';
+        const pointLat = parseFloat(mapEl.dataset.pointLat || '');
+        const pointLng = parseFloat(mapEl.dataset.pointLng || '');
+        const pointType = mapEl.dataset.pointType || 'prise_en_charge';
+
+        if (!rawGeometry || !Number.isFinite(pointLat) || !Number.isFinite(pointLng)) return;
+
+        let geometry = null;
+        try {
+            geometry = JSON.parse(rawGeometry);
+        } catch (error) {
+            return;
+        }
+
+        const map = L.map(mapEl, {
+            zoomControl: true,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: true,
+            boxZoom: false,
+            keyboard: false,
+            tap: false,
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        const routeLine = drawRouteLine(geometry, map);
+
+        const markerColor = pointType === 'prise_en_charge' ? '#2980B9' : '#8E44AD';
+        const pointMarker = L.circleMarker([pointLat, pointLng], {
+            radius: 6,
+            color: '#FFFFFF',
+            weight: 2,
+            fillColor: markerColor,
+            fillOpacity: 1,
+        }).addTo(map);
+
+        if (routeLine) {
+            const bounds = routeLine.getBounds();
+            bounds.extend(pointMarker.getLatLng());
+            map.fitBounds(bounds, { padding: [10, 10] });
+        } else {
+            map.setView([pointLat, pointLng], 14);
+        }
     });
 }

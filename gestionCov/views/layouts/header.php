@@ -173,6 +173,7 @@ $roleLabel = match ($role) {
                     </li>
                 <?php endif; ?>
 
+                <?php if ($role !== 'admin'): ?>
                 <li>
                     <a href="<?= BASE_URL ?>/index.php?page=message" class="nav-link nav-msg">
                         <?= ui_icon('messages', 'icon icon-sm nav-link-icon') ?>
@@ -182,6 +183,7 @@ $roleLabel = match ($role) {
                         <?php endif; ?>
                     </a>
                 </li>
+                <?php endif; ?>
 
                 <li class="nav-user-menu">
                     <button class="nav-avatar" id="userMenuBtn" type="button" aria-label="Menu utilisateur">

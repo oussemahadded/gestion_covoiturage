@@ -38,6 +38,7 @@ class Reservation
             'SELECT r.*,
                     COALESCE(r.prix_snapshot, t.prix) AS montant_estime,
                     t.ville_depart, t.ville_arrivee, t.date_depart, t.heure_depart, t.prix,
+                    t.route_geometry, t.distance_km, t.duree_minutes, t.prix_par_km,
                     u.nom AS passager_nom, u.prenom AS passager_prenom, u.telephone AS passager_tel, u.email AS passager_email
              FROM reservations r
              INNER JOIN trajets t ON r.trajet_id = t.id
