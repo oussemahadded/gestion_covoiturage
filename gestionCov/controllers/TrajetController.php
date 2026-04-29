@@ -119,7 +119,7 @@ class TrajetController
                 $trajets = $this->trajetModel->search($depart, $arrivee, $date);
             }
         } else {
-            $trajets = $this->trajetModel->getAll();
+            $trajets = $this->trajetModel->getAvailable();
         }
 
         require_once ROOT_PATH . '/views/trajets/index.php';
@@ -138,6 +138,42 @@ class TrajetController
         $avisModel = new Avis();
         $avisList = $avisModel->getByTrajet($id);
         $avgRating = $avisModel->getAverageForConducteur((int) $trajet['conducteur_id']);
+
+        $tripStatus = (string) ($trajet['statut_trajet'] ?? 'publie');
+        $tripTimestamp = strtotime(trim((string) ($trajet['date_depart'] ?? '')) . ' ' . trim((string) ($trajet['heure_depart'] ?? '')));
+        $isPastTrip = $tripTimestamp !== false && $tripTimestamp <= time();
+        $isFullTrip = (int) ($trajet['places_restantes'] ?? 0) <= 0;
+
+        $reservationBlock = null;
+        if ($tripStatus === 'termine') {
+            $reservationBlock = [
+                'title' => 'Trajet terminé',
+                'message' => 'Ce trajet a été marqué comme terminé par le conducteur.',
+                'icon' => 'success',
+                'class' => 'reservation-state-confirmee',
+            ];
+        } elseif ($tripStatus === 'annule') {
+            $reservationBlock = [
+                'title' => 'Trajet annulé',
+                'message' => "Ce trajet n'est plus disponible à la réservation.",
+                'icon' => 'cancelled',
+                'class' => 'reservation-state-refusee',
+            ];
+        } elseif ($isPastTrip) {
+            $reservationBlock = [
+                'title' => 'Trajet expiré',
+                'message' => 'Ce trajet est déjà passé et ne peut plus être réservé.',
+                'icon' => 'warning',
+                'class' => 'reservation-state-refusee',
+            ];
+        } elseif ($isFullTrip) {
+            $reservationBlock = [
+                'title' => 'Trajet complet',
+                'message' => "Aucune place n'est disponible pour le moment.",
+                'icon' => 'warning',
+                'class' => 'reservation-state-refusee',
+            ];
+        }
 
         $reservationModel = new Reservation();
         $currentReservation = false;

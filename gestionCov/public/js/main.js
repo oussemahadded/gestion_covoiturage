@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initReservationPointPicker();
     initTripPreviewMaps();
     initDriverRequestMaps();
+    initSortableTables();
 });
 
 function initMobileNav() {
@@ -1002,4 +1003,162 @@ function initDriverRequestMaps() {
             map.setView([pointLat, pointLng], 14);
         }
     });
+}
+
+function initSortableTables() {
+    const tables = document.querySelectorAll('.data-sortable-table');
+    if (!tables.length) return;
+
+    tables.forEach((table) => {
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        const headers = table.querySelectorAll('thead th.data-sortable-column, thead th[data-sort]');
+        if (!headers.length) return;
+
+        headers.forEach((header) => {
+            if (!header.classList.contains('data-sortable-column')) {
+                header.classList.add('data-sortable-column');
+            }
+            header.classList.add('sortable-header');
+            header.setAttribute('tabindex', '0');
+            header.setAttribute('role', 'button');
+
+            let indicator = header.querySelector('.sort-indicator');
+            if (!indicator) {
+                indicator = document.createElement('span');
+                indicator.className = 'sort-indicator';
+                indicator.textContent = '↕';
+                indicator.setAttribute('aria-hidden', 'true');
+                header.appendChild(indicator);
+            }
+
+            const sortHandler = () => {
+                const headerCells = Array.from(header.parentElement.children);
+                const columnIndex = headerCells.indexOf(header);
+                const sortType = header.dataset.sortType || header.dataset.sort || 'text';
+                const dataRows = Array.from(tbody.querySelectorAll('tr'))
+                    .filter((row) => !row.querySelector('.empty-state'));
+
+                if (dataRows.length < 2) return;
+
+                const shouldSortAsc = !header.classList.contains('sort-asc');
+
+                table.querySelectorAll('thead th.sortable-header').forEach((th) => {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                    const thIndicator = th.querySelector('.sort-indicator');
+                    if (thIndicator) thIndicator.textContent = '↕';
+                });
+
+                header.classList.add(shouldSortAsc ? 'sort-asc' : 'sort-desc');
+                if (indicator) {
+                    indicator.textContent = shouldSortAsc ? '↑' : '↓';
+                }
+
+                dataRows.sort((rowA, rowB) => {
+                    const cellA = rowA.children[columnIndex] || null;
+                    const cellB = rowB.children[columnIndex] || null;
+                    const valueA = getSortableValue(cellA, sortType);
+                    const valueB = getSortableValue(cellB, sortType);
+
+                    if (valueA === null && valueB === null) return 0;
+                    if (valueA === null) return 1;
+                    if (valueB === null) return -1;
+
+                    let comparison = 0;
+                    if (typeof valueA === 'string' && typeof valueB === 'string') {
+                        comparison = valueA.localeCompare(valueB, 'fr', { sensitivity: 'base' });
+                    } else {
+                        comparison = valueA < valueB ? -1 : (valueA > valueB ? 1 : 0);
+                    }
+
+                    return shouldSortAsc ? comparison : -comparison;
+                });
+
+                dataRows.forEach((row) => {
+                    tbody.appendChild(row);
+                });
+            };
+
+            header.addEventListener('click', sortHandler);
+            header.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    sortHandler();
+                }
+            });
+        });
+    });
+}
+
+function getSortableValue(cell, sortType) {
+    if (!cell) return null;
+
+    const raw = cell.getAttribute('data-sort-value');
+    const text = (raw !== null ? raw : cell.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (text === '') {
+        return null;
+    }
+
+    if (sortType === 'number' || sortType === 'money') {
+        return parseSortableNumber(text);
+    }
+
+    if (sortType === 'date') {
+        return parseSortableDate(text);
+    }
+
+    return text.toLocaleLowerCase('fr');
+}
+
+function parseSortableNumber(text) {
+    const cleaned = text
+        .replace(/\s+/g, '')
+        .replace(/[^\d,.-]/g, '');
+
+    if (cleaned === '' || cleaned === '-') {
+        return null;
+    }
+
+    let normalized = cleaned;
+    const hasComma = normalized.includes(',');
+    const hasDot = normalized.includes('.');
+
+    if (hasComma && hasDot) {
+        normalized = normalized.replace(/,/g, '');
+    } else if (hasComma && !hasDot) {
+        normalized = normalized.replace(/,/g, '.');
+    }
+
+    const value = parseFloat(normalized);
+    return Number.isFinite(value) ? value : null;
+}
+
+function parseSortableDate(text) {
+    const dateMatch = text.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!dateMatch) {
+        return null;
+    }
+
+    const day = Number(dateMatch[1]);
+    const month = Number(dateMatch[2]);
+    const year = Number(dateMatch[3]);
+    const hour = dateMatch[4] ? Number(dateMatch[4]) : 0;
+    const minute = dateMatch[5] ? Number(dateMatch[5]) : 0;
+    const parsed = new Date(year, month - 1, day, hour, minute);
+
+    if (
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day ||
+        parsed.getHours() !== hour ||
+        parsed.getMinutes() !== minute
+    ) {
+        return null;
+    }
+
+    return parsed.getTime();
 }

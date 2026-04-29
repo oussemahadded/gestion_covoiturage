@@ -25,6 +25,28 @@ class Trajet
         )->fetchAll();
     }
 
+    public function getAvailable(?int $limit = null): array
+    {
+        $sql = 'SELECT t.*, u.nom, u.prenom, u.telephone
+                FROM trajets t
+                INNER JOIN utilisateurs u ON t.conducteur_id = u.id
+                WHERE t.statut_trajet = "publie"
+                  AND t.places_restantes > 0
+                  AND TIMESTAMP(t.date_depart, t.heure_depart) > NOW()
+                ORDER BY t.date_depart DESC, t.heure_depart ASC';
+
+        if ($limit === null) {
+            return $this->pdo->query($sql)->fetchAll();
+        }
+
+        $limit = max(1, $limit);
+        $sql .= ' LIMIT :limit';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function getByConducteur(int $conducteurId): array
     {
         $stmt = $this->pdo->prepare(
@@ -57,11 +79,13 @@ class Trajet
     public function search(string $depart, string $arrivee, string $date): array
     {
         $sql = 'SELECT t.*, u.nom, u.prenom, u.telephone
-                FROM trajets t
-                INNER JOIN utilisateurs u ON t.conducteur_id = u.id
-                WHERE t.ville_depart LIKE :depart
-                  AND t.ville_arrivee LIKE :arrivee
-                  AND t.places_restantes > 0';
+            FROM trajets t
+            INNER JOIN utilisateurs u ON t.conducteur_id = u.id
+            WHERE t.ville_depart LIKE :depart
+              AND t.ville_arrivee LIKE :arrivee
+              AND t.statut_trajet = "publie"
+              AND t.places_restantes > 0
+              AND TIMESTAMP(t.date_depart, t.heure_depart) > NOW()';
 
         $params = [
             ':depart' => '%' . $depart . '%',

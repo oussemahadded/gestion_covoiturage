@@ -1860,6 +1860,127 @@ button {
     min-width: 165px;
 }
 
+/* Admin compact KPI and sortable tables */
+.finance-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 2rem;
+}
+
+.finance-kpi-card {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+}
+
+.finance-kpi-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--clr-primary-light);
+    color: var(--clr-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.finance-kpi-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.finance-kpi-label {
+    color: var(--clr-text-muted);
+    font-size: .82rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+}
+
+.finance-kpi-value,
+.finance-kpi-money {
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.finance-kpi-money {
+    color: var(--clr-primary-dark);
+}
+
+.table-compact th,
+.table-compact td {
+    padding: .56rem .72rem;
+    line-height: 1.25;
+}
+
+.admin-user-cell strong {
+    display: block;
+}
+
+.admin-route-cell {
+    white-space: nowrap;
+}
+
+.admin-muted {
+    color: var(--clr-text-muted);
+    font-size: .78rem;
+}
+
+.compact-point {
+    display: flex;
+    flex-direction: column;
+    gap: .12rem;
+}
+
+.compact-payment {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--clr-border);
+    border-radius: 999px;
+    padding: .15rem .55rem;
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--clr-text-muted);
+    background: #fff;
+}
+
+.compact-payment.is-declared {
+    border-color: #f4c3bc;
+    color: var(--clr-primary-dark);
+    background: var(--clr-primary-light);
+}
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.sortable-header:hover {
+    color: var(--clr-primary);
+}
+
+.sort-indicator {
+    display: inline-flex;
+    margin-left: .35rem;
+    font-size: .75rem;
+    opacity: .65;
+}
+
+.sort-asc .sort-indicator,
+.sort-desc .sort-indicator {
+    opacity: 1;
+    color: var(--clr-primary);
+    font-weight: 800;
+}
+
 /* ── Chat ────────────────────────────────────────────────────── */
 .chat-header {
     display: flex;

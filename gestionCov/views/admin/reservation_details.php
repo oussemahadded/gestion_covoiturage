@@ -107,6 +107,7 @@ $reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
                 <span class="text-muted"><?= htmlspecialchars(admin_rd_payment_label($paymentStatus), ENT_QUOTES, 'UTF-8') ?></span>
             <?php endif; ?>
         </p>
+        <p><strong>Code statut paiement:</strong> <?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?></p>
         <?php if ($paymentStatus === 'declare_paye'): ?>
             <p><strong>Montant déclaré:</strong> <span class="money-value"><?= number_format((float) ($reservation['paid_amount'] ?? $reservation['montant_estime'] ?? 0), 2) ?> TND</span></p>
             <p><strong>Déclaré le:</strong> <?= admin_rd_datetime((string) ($reservation['paid_at'] ?? '')) ?></p>
@@ -116,7 +117,8 @@ $reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
     <section class="admin-detail-card detail-card app-card">
         <h2>Point de réservation</h2>
         <?php if ($pointLabel !== '' && isset($reservation['reservation_point_lat'], $reservation['reservation_point_lng'])): ?>
-            <p><strong><?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?>:</strong> <?= number_format((float) $reservation['reservation_point_lat'], 5) ?>, <?= number_format((float) $reservation['reservation_point_lng'], 5) ?></p>
+            <p><strong>Type de point:</strong> <?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?></p>
+            <p><strong>Coordonnées:</strong> <?= number_format((float) $reservation['reservation_point_lat'], 5) ?>, <?= number_format((float) $reservation['reservation_point_lng'], 5) ?></p>
             <p><strong>Distance facturée:</strong> <?= $reservationDistance !== null ? number_format((float) $reservationDistance, 2) . ' km' : '-' ?></p>
             <p><strong>Durée estimée:</strong> <?= $reservationDuration !== null ? (int) $reservationDuration . ' min' : '-' ?></p>
             <p><strong>Prix réservation:</strong> <span class="money-value"><?= number_format((float) $reservationPrice, 2) ?> TND</span></p>

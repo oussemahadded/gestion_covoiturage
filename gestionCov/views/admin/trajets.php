@@ -13,15 +13,15 @@
     </div>
 
     <div class="table-wrapper">
-        <table class="data-table">
+        <table class="data-table data-sortable-table">
             <thead>
             <tr>
-                <th>#</th>
-                <th>Trajet</th>
-                <th>Conducteur</th>
-                <th>Date</th>
-                <th>Heure</th>
-                <th>Prix</th>
+                <th class="data-sortable-column" data-sort-type="number">#</th>
+                <th class="data-sortable-column" data-sort-type="text">Trajet</th>
+                <th class="data-sortable-column" data-sort-type="text">Conducteur</th>
+                <th class="data-sortable-column" data-sort-type="date">Date</th>
+                <th class="data-sortable-column" data-sort-type="text">Heure</th>
+                <th class="data-sortable-column" data-sort-type="money">Prix</th>
                 <th>Places</th>
                 <th>Action</th>
             </tr>

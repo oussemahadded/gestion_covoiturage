@@ -408,7 +408,12 @@ class Reservation
             $this->pdo->beginTransaction();
 
             $stmt = $this->pdo->prepare(
-                'SELECT conducteur_id, places_restantes, prix
+                'SELECT conducteur_id,
+                        places_restantes,
+                        prix,
+                        statut_trajet,
+                        date_depart,
+                        heure_depart
                  FROM trajets
                  WHERE id = ?
                  FOR UPDATE'
@@ -419,6 +424,24 @@ class Reservation
             if (!$trajet) {
                 $this->pdo->rollBack();
                 return ['success' => false, 'message' => 'Trajet introuvable.'];
+            }
+
+            $tripStatus = (string) ($trajet['statut_trajet'] ?? 'publie');
+            $tripTimestamp = strtotime(trim((string) ($trajet['date_depart'] ?? '')) . ' ' . trim((string) ($trajet['heure_depart'] ?? '')));
+
+            if ($tripStatus === 'termine') {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => 'Trajet terminé. Ce trajet a été marqué comme terminé par le conducteur.'];
+            }
+
+            if ($tripStatus === 'annule') {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => "Trajet annulé. Ce trajet n'est plus disponible à la réservation."];
+            }
+
+            if ($tripTimestamp !== false && $tripTimestamp <= time()) {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => 'Ce trajet est déjà passé et ne peut plus être réservé.'];
             }
 
             if ((int) $trajet['places_restantes'] <= 0) {

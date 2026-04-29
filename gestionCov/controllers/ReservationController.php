@@ -85,6 +85,29 @@ class ReservationController
             $this->redirect(BASE_URL . '/index.php?page=trajet');
         }
 
+        $tripStatus = (string) ($trajet['statut_trajet'] ?? 'publie');
+        $tripTimestamp = strtotime(trim((string) ($trajet['date_depart'] ?? '')) . ' ' . trim((string) ($trajet['heure_depart'] ?? '')));
+
+        if ($tripStatus === 'termine') {
+            $this->flash('error', 'Trajet terminé. Ce trajet a été marqué comme terminé par le conducteur.');
+            $this->redirect(BASE_URL . '/index.php?page=trajet&action=show&id=' . $trajetId);
+        }
+
+        if ($tripStatus === 'annule') {
+            $this->flash('error', "Trajet annulé. Ce trajet n'est plus disponible à la réservation.");
+            $this->redirect(BASE_URL . '/index.php?page=trajet&action=show&id=' . $trajetId);
+        }
+
+        if ($tripTimestamp !== false && $tripTimestamp <= time()) {
+            $this->flash('error', 'Ce trajet est déjà passé et ne peut plus être réservé.');
+            $this->redirect(BASE_URL . '/index.php?page=trajet&action=show&id=' . $trajetId);
+        }
+
+        if ((int) ($trajet['places_restantes'] ?? 0) <= 0) {
+            $this->flash('error', 'Trajet complet. Aucune place disponible.');
+            $this->redirect(BASE_URL . '/index.php?page=trajet&action=show&id=' . $trajetId);
+        }
+
         if ((int) $trajet['conducteur_id'] === $passagerId) {
             $this->flash('error', 'Vous ne pouvez pas réserver votre propre trajet.');
             $this->redirect(BASE_URL . '/index.php?page=trajet&action=show&id=' . $trajetId);

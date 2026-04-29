@@ -241,13 +241,13 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                             </div>
                             <p><?= htmlspecialchars($reservationState['text'], ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
-                    <?php elseif ((int) $trajet['places_restantes'] <= 0): ?>
-                        <div class="reservation-state-card reservation-state-refusee">
+                    <?php elseif (!empty($reservationBlock)): ?>
+                        <div class="reservation-state-card <?= htmlspecialchars((string) ($reservationBlock['class'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                             <div class="reservation-state-title">
-                                <?= ui_icon('warning', 'icon icon-sm') ?>
-                                <strong>Trajet complet</strong>
+                                <?= ui_icon((string) ($reservationBlock['icon'] ?? 'warning'), 'icon icon-sm') ?>
+                                <strong><?= htmlspecialchars((string) ($reservationBlock['title'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
                             </div>
-                            <p>Aucune place n'est disponible pour le moment.</p>
+                            <p><?= htmlspecialchars((string) ($reservationBlock['message'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
                     <?php else: ?>
                         <form action="<?= BASE_URL ?>/index.php?page=reservation&action=book" method="POST" class="reservation-point-form">

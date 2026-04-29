@@ -60,16 +60,16 @@ require_once ROOT_PATH . '/views/layouts/header.php';
     </div>
 
     <div class="table-wrapper">
-        <table class="data-table">
+        <table class="data-table data-sortable-table">
             <thead>
             <tr>
-                <th>#</th>
-                <th>Nom</th>
-                <th>Email</th>
-                <th>Téléphone</th>
-                <th>Rôle</th>
-                <th>Statut compte</th>
-                <th>Inscrit le</th>
+                <th class="data-sortable-column" data-sort-type="number">#</th>
+                <th class="data-sortable-column" data-sort-type="text">Nom</th>
+                <th class="data-sortable-column" data-sort-type="text">Email</th>
+                <th class="data-sortable-column" data-sort-type="text">Téléphone</th>
+                <th class="data-sortable-column" data-sort-type="text">Rôle</th>
+                <th class="data-sortable-column" data-sort-type="text">Statut compte</th>
+                <th class="data-sortable-column" data-sort-type="date">Inscrit le</th>
                 <th>Actions</th>
             </tr>
             </thead>

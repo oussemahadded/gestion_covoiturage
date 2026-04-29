@@ -198,56 +198,47 @@ if (!function_exists('admin_trip_status_icon_detail')) {
     <section class="detail-section">
         <h2 class="section-subtitle">Réservations liées à ce trajet</h2>
         <div class="table-wrapper data-card">
-            <table class="data-table table-modern">
+            <table class="data-table table-modern table-compact data-sortable-table">
                 <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Passager</th>
-                    <th>Email / téléphone</th>
-                    <th>Statut</th>
-                    <th>Réservé le</th>
-                    <th>Horodatage statut</th>
-                    <th>Paiement déclaré</th>
-                    <th>Point sélectionné</th>
-                    <th>Distance facturée</th>
-                    <th>Prix réservation</th>
-                    <th>Prix snapshot (réservation)</th>
+                    <th class="data-sortable-column" data-sort-type="number">ID</th>
+                    <th class="data-sortable-column" data-sort-type="text">Passager</th>
+                    <th class="data-sortable-column" data-sort-type="text">Contact</th>
+                    <th class="data-sortable-column" data-sort-type="text">Statut</th>
+                    <th class="data-sortable-column" data-sort-type="date">Réservé le</th>
+                    <th class="data-sortable-column" data-sort-type="text">Point</th>
+                    <th class="data-sortable-column" data-sort-type="number">Distance</th>
+                    <th class="data-sortable-column" data-sort-type="money">Prix</th>
+                    <th class="data-sortable-column" data-sort-type="text">Paiement</th>
                     <th>Détails</th>
                 </tr>
                 </thead>
                 <tbody>
                 <?php if (empty($tripReservationRows)): ?>
                     <tr>
-                        <td colspan="12" class="empty-state">Aucune réservation pour ce trajet.</td>
+                        <td colspan="10" class="empty-state">Aucune réservation pour ce trajet.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($tripReservationRows as $row): ?>
                         <?php
                         $status = (string) ($row['statut'] ?? 'en_attente');
-                        $statusTimestamp = match ($status) {
-                            'confirmee' => $row['confirmed_at'] ?? null,
-                            'refusee' => $row['refused_at'] ?? null,
-                            'annulee' => $row['cancelled_at'] ?? null,
-                            default => null,
-                        };
-                        $priceSnapshot = $row['prix_snapshot'] ?? $row['trajet_prix'] ?? 0;
                         $reservationPrice = $row['reservation_price'] ?? $row['prix_snapshot'] ?? $row['trajet_prix'] ?? 0;
                         $reservationDistance = $row['reservation_distance_km'] ?? null;
                         $reservationType = (string) ($row['reservation_point_type'] ?? '');
                         $pointLabel = $reservationType === 'prise_en_charge'
-                            ? 'Point de prise en charge'
-                            : ($reservationType === 'depose' ? 'Point de dépose' : '');
-                        $pointIcon = $reservationType === 'prise_en_charge' ? 'departure' : 'arrival';
+                            ? 'Prise en charge'
+                            : ($reservationType === 'depose' ? 'Dépose' : '');
+                        $paymentDeclared = ($row['payment_status'] ?? '') === 'declare_paye';
                         ?>
                         <tr>
-                            <td>#<?= (int) ($row['reservation_id'] ?? 0) ?></td>
-                            <td>
+                            <td data-sort-value="<?= (int) ($row['reservation_id'] ?? 0) ?>">#<?= (int) ($row['reservation_id'] ?? 0) ?></td>
+                            <td class="admin-user-cell">
                                 <strong><?= htmlspecialchars(trim(($row['passager_prenom'] ?? '') . ' ' . ($row['passager_nom'] ?? '')), ENT_QUOTES, 'UTF-8') ?></strong><br>
-                                <small><?= htmlspecialchars(admin_role_label_detail((string) ($row['passager_role'] ?? '-')), ENT_QUOTES, 'UTF-8') ?></small>
+                                <small class="admin-muted"><?= htmlspecialchars(admin_role_label_detail((string) ($row['passager_role'] ?? '-')), ENT_QUOTES, 'UTF-8') ?></small>
                             </td>
-                            <td>
+                            <td class="admin-user-cell">
                                 <?= htmlspecialchars((string) ($row['passager_email'] ?? '-'), ENT_QUOTES, 'UTF-8') ?><br>
-                                <small><?= htmlspecialchars((string) ($row['passager_telephone'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></small>
+                                <small class="admin-muted"><?= htmlspecialchars((string) ($row['passager_telephone'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></small>
                             </td>
                             <td>
                                 <span class="status-badge status-pill status-<?= htmlspecialchars(admin_res_status_class($status), ENT_QUOTES, 'UTF-8') ?>">
@@ -256,37 +247,29 @@ if (!function_exists('admin_trip_status_icon_detail')) {
                                 </span>
                             </td>
                             <td><?= admin_detail_datetime((string) ($row['reservation_created_at'] ?? '')) ?></td>
-                            <td><?= admin_detail_datetime(is_string($statusTimestamp) ? $statusTimestamp : null) ?></td>
-                            <td>
-                                <?php if (($row['payment_status'] ?? '') === 'declare_paye'): ?>
-                                    <span class="payment-status-badge payment-status-declare_paye">
-                                        <?= ui_icon('price', 'icon icon-xs') ?>
-                                        <span>Paiement en espèces déclaré</span>
-                                    </span><br>
-                                    <small>Montant déclaré: <?= number_format((float) ($row['paid_amount'] ?? $priceSnapshot), 2) ?> TND</small><br>
-                                    <small>Déclaré le <?= admin_detail_datetime((string) ($row['paid_at'] ?? '')) ?></small>
-                                <?php else: ?>
-                                    <span class="text-muted">Non applicable</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
+                            <td class="compact-point">
                                 <?php if ($pointLabel !== '' && isset($row['reservation_point_lat'], $row['reservation_point_lng'])): ?>
-                                    <?= ui_icon($pointIcon, 'icon icon-xs') ?>
-                                    <?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?><br>
-                                    <small><?= number_format((float) $row['reservation_point_lat'], 5) ?>, <?= number_format((float) $row['reservation_point_lng'], 5) ?></small>
+                                    <span><?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    <small class="admin-muted"><?= number_format((float) $row['reservation_point_lat'], 5) ?>, <?= number_format((float) $row['reservation_point_lng'], 5) ?></small>
                                 <?php else: ?>
-                                    <span class="text-muted">-</span>
+                                    <span class="admin-muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-sort-value="<?= $reservationDistance !== null ? number_format((float) $reservationDistance, 2, '.', '') : '' ?>">
                                 <?php if ($reservationDistance !== null): ?>
                                     <?= number_format((float) $reservationDistance, 2) ?> km
                                 <?php else: ?>
-                                    <span class="text-muted">-</span>
+                                    <span class="admin-muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="money-value"><?= number_format((float) $reservationPrice, 2) ?> TND</span></td>
-                            <td><span class="money-value"><?= number_format((float) $priceSnapshot, 2) ?> TND</span></td>
+                            <td data-sort-value="<?= number_format((float) $reservationPrice, 2, '.', '') ?>"><span class="money-value"><?= number_format((float) $reservationPrice, 2) ?> TND</span></td>
+                            <td>
+                                <?php if ($paymentDeclared): ?>
+                                    <span class="compact-payment is-declared">Déclaré</span>
+                                <?php else: ?>
+                                    <span class="compact-payment">Non applicable</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <a href="<?= BASE_URL ?>/index.php?page=admin&action=reservationDetails&id=<?= (int) ($row['reservation_id'] ?? 0) ?>" class="btn btn-outline btn-xs">
                                     <?= ui_icon('view', 'icon icon-xs') ?>
