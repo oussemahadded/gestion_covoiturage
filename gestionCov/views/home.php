@@ -5,7 +5,6 @@
         <h1 class="hero-title">Voyagez <span class="gradient-text">ensemble</span><br>en Tunisie.</h1>
         <p class="hero-subtitle">
             CHAYA3NI connecte les étudiants et professeurs de Sesame avec des conducteurs pour partager les trajets.
-            Étudiants et professeurs : adresse @sesame.com.tn. Conducteurs : adresse email valide.
         </p>
 
         <form action="<?= BASE_URL ?>/index.php" method="GET" class="hero-search filter-card date-fr-form">
