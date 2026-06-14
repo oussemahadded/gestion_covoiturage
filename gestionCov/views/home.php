@@ -4,7 +4,7 @@
     <div class="hero-content">
         <h1 class="hero-title">Voyagez <span class="gradient-text">ensemble</span><br>en Tunisie.</h1>
         <p class="hero-subtitle">
-            CHAYA3NI connecte les étudiants et professeurs de Sesame avec des conducteurs pour partager les trajets.
+            SesameRide connecte les étudiants et professeurs de Sesame avec des conducteurs pour partager les trajets.
         </p>
 
         <form action="<?= BASE_URL ?>/index.php" method="GET" class="hero-search filter-card date-fr-form">
@@ -41,9 +41,7 @@
     </div>
 
     <div class="hero-visual" aria-hidden="true">
-        <div class="hero-car-animation">
-            <?= ui_icon('car', 'icon icon-xl') ?>
-        </div>
+        <img src="<?= BASE_URL ?>/public/img/SE.png" alt="SesameRide - Covoiturage universitaire" class="hero-img">
     </div>
 </section>
 
@@ -52,22 +50,22 @@
         <div class="stats-grid kpi-grid">
             <div class="stat-card kpi-card metric-card">
                 <span class="stat-icon"><?= ui_icon('route', 'icon icon-lg') ?></span>
-                <span class="stat-number">100+</span>
+                <span class="stat-number"><?= $totalTrajets ?></span>
                 <span class="stat-label">Trajets publiés</span>
             </div>
             <div class="stat-card kpi-card metric-card">
                 <span class="stat-icon"><?= ui_icon('users', 'icon icon-lg') ?></span>
-                <span class="stat-number">500+</span>
+                <span class="stat-number"><?= $totalUsers ?></span>
                 <span class="stat-label">Utilisateurs actifs</span>
             </div>
             <div class="stat-card kpi-card metric-card">
                 <span class="stat-icon"><?= ui_icon('car', 'icon icon-lg') ?></span>
-                <span class="stat-number">24+</span>
-                <span class="stat-label">Gouvernorats couverts</span>
+                <span class="stat-number"><?= $gouvernorats ?></span>
+                <span class="stat-label">Villes couvertes</span>
             </div>
             <div class="stat-card kpi-card metric-card">
                 <span class="stat-icon"><?= ui_icon('star', 'icon icon-lg') ?></span>
-                <span class="stat-number">4.8/5</span>
+                <span class="stat-number"><?= $avgRatingFormatted ?>/5</span>
                 <span class="stat-label">Satisfaction moyenne</span>
             </div>
         </div>
@@ -79,7 +77,11 @@
         <h2 class="section-title">Trajets récents</h2>
         <div class="trajets-grid">
             <?php if (empty($trajets)): ?>
-                <p class="empty-state empty-state-polished">Aucun trajet disponible pour le moment.</p>
+                <div class="empty-state-box" style="padding:2.5rem 2rem;">
+                    <span class="empty-illustration"><?= ui_icon('route', 'icon icon-xl') ?></span>
+                    <h3>Aucun trajet pour le moment</h3>
+                    <p>Revenez bientôt, de nouveaux trajets sont ajoutés régulièrement.</p>
+                </div>
             <?php else: ?>
                 <?php foreach ($trajets as $t): ?>
                     <article class="trajet-card route-card">
@@ -94,7 +96,7 @@
                             <span><?= ui_icon('seats', 'icon icon-xs') ?> <?= (int) $t['places_restantes'] ?> place(s)</span>
                         </div>
                         <div class="trajet-footer">
-                            <span class="trajet-price"><?= number_format((float) $t['prix'], 2) ?> TND</span>
+                            <span class="trajet-price"><?= number_format(round($t['distance_km'] * $t['prix_par_km']), 0, ',', ' ') ?> pts</span>
                             <a href="<?= BASE_URL ?>/index.php?page=trajet&action=show&id=<?= (int) $t['id'] ?>" class="btn btn-outline btn-sm">
                                 <?= ui_icon('view', 'icon icon-xs') ?>
                                 <span>Voir</span>

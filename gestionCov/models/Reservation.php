@@ -614,4 +614,90 @@ class Reservation
             return false;
         }
     }
+
+    // ── Système de points (récompenses) ──────────────────────────────────────
+
+    /**
+     * Complète une réservation et attribue les points au conducteur
+     * Appelée quand le trajet est terminé et validé par le passager
+     * @return bool true si succès
+     */
+    public function completeReservationWithPoints(int $reservationId, int $pointsToAward): bool
+    {
+        try {
+            $this->pdo->beginTransaction();
+
+            // 1. Récupérer la réservation
+            $stmt = $this->pdo->prepare(
+                'SELECT r.*, t.conducteur_id
+                 FROM reservations r
+                 INNER JOIN trajets t ON r.trajet_id = t.id
+                 WHERE r.id = ?
+                 FOR UPDATE'
+            );
+            $stmt->execute([$reservationId]);
+            $reservation = $stmt->fetch();
+
+            if (!$reservation) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            // 2. Vérifier si les points n'ont pas déjà été attribués
+            if ((int) $reservation['points_earned'] > 0) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            // 3. Mettre à jour la réservation avec les points gagnés
+            $stmt = $this->pdo->prepare(
+                'UPDATE reservations
+                 SET points_earned = ?
+                 WHERE id = ?'
+            );
+            $stmt->execute([$pointsToAward, $reservationId]);
+
+            // 4. Ajouter les points au conducteur via le modèle User
+            $user = new User();
+            $pointsAdded = $user->addPoints(
+                (int) $reservation['conducteur_id'],
+                $pointsToAward,
+                'trajet_complete',
+                $reservationId,
+                'Trajets complétés: ' . htmlspecialchars($reservation['ville_depart'] ?? 'N/A') . 
+                ' → ' . htmlspecialchars($reservation['ville_arrivee'] ?? 'N/A')
+            );
+
+            if ($pointsAdded) {
+                $this->pdo->commit();
+                return true;
+            } else {
+                $this->pdo->rollBack();
+                return false;
+            }
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('[RESERVATION COMPLETE POINTS ERROR] ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupère les réservations confirmées d'un trajet pour attribution des points
+     */
+    public function getConfirmedReservationsByTrajet(int $trajetId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT r.*, t.conducteur_id, u.nom AS passager_nom, u.prenom AS passager_prenom
+             FROM reservations r
+             INNER JOIN trajets t ON r.trajet_id = t.id
+             INNER JOIN utilisateurs u ON r.passager_id = u.id
+             WHERE r.trajet_id = ? AND r.statut = "confirmee" AND r.points_earned IS NULL
+             ORDER BY r.created_at ASC'
+        );
+        $stmt->execute([$trajetId]);
+        return $stmt->fetchAll();
+    }
 }

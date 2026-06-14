@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $pageTitle = 'Administration - Traçabilité';
 require_once ROOT_PATH . '/views/layouts/header.php';
 
@@ -94,7 +94,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 
 <div class="container admin-page traceability-page">
     <div class="page-header-row">
-        <h1 class="page-title">
+        <h1 class="page-title" style="display: flex; align-items: center; gap: 0.6rem;">
             <?= ui_icon('traceability', 'icon icon-md') ?>
             <span>Traçabilité globale</span>
         </h1>
@@ -122,12 +122,12 @@ if (!function_exists('admin_trip_status_icon_trace')) {
             <div class="trace-card-value"><?= (int) ($traceStats['reservations_en_attente'] ?? 0) ?></div>
         </article>
         <article class="trace-card kpi-card metric-card">
-            <div class="trace-card-title">Recette estimée confirmée</div>
-            <div class="trace-card-value money-value"><?= number_format((float) ($traceStats['recette_confirmee_estimee'] ?? 0), 2) ?> TND</div>
+            <div class="trace-card-title">Points estimés (réservations confirmées)</div>
+            <div class="trace-card-value money-value"><?= number_format((float) ($traceStats['recette_confirmee_estimee'] ?? 0), 0, '.', ' ') ?> pts</div>
         </article>
         <article class="trace-card kpi-card metric-card">
-            <div class="trace-card-title">Recette estimée totale (demandes actives)</div>
-            <div class="trace-card-value money-value"><?= number_format((float) ($traceStats['recette_estimee_active'] ?? 0), 2) ?> TND</div>
+            <div class="trace-card-title">Points estimés (demandes actives)</div>
+            <div class="trace-card-value money-value"><?= number_format((float) ($traceStats['recette_estimee_active'] ?? 0), 0, '.', ' ') ?> pts</div>
         </article>
     </section>
 
@@ -190,8 +190,8 @@ if (!function_exists('admin_trip_status_icon_trace')) {
 
     <section class="detail-section">
         <h2 class="section-subtitle">Traçabilité des réservations</h2>
-        <div class="table-wrapper data-card">
-            <table class="data-table table-modern table-compact data-sortable-table">
+        <div class="table-wrapper data-card" style="overflow-x: auto; width: 100%;">
+            <table class="data-table table-modern table-compact data-sortable-table" style="min-width: 700px;">
                 <thead>
                 <tr>
                     <th class="data-sortable-column" data-sort-type="number">ID</th>
@@ -200,9 +200,9 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                     <th class="data-sortable-column" data-sort-type="text">Trajet</th>
                     <th class="data-sortable-column" data-sort-type="date">Date trajet</th>
                     <th class="data-sortable-column" data-sort-type="text">Statut réservation</th>
-                    <th class="data-sortable-column" data-sort-type="money">Montant</th>
-                    <th class="data-sortable-column" data-sort-type="text">Point</th>
-                    <th class="data-sortable-column" data-sort-type="text">Paiement</th>
+                    <th class="data-sortable-column" data-sort-type="number">Points conducteur</th>
+                    <th class="data-sortable-column" data-sort-type="text">Point de trajet</th>
+                    <th class="data-sortable-column" data-sort-type="number">Points gagnés</th>
                     <th>Détails</th>
                 </tr>
                 </thead>
@@ -215,14 +215,18 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                     <?php foreach ($reservationRows as $row): ?>
                         <?php
                         $status = (string) ($row['statut'] ?? 'en_attente');
-                        $montant = isset($row['prix_snapshot']) && $row['prix_snapshot'] !== null
-                            ? (float) $row['prix_snapshot']
-                            : (float) ($row['trajet_prix'] ?? 0);
+                        // Points conducteur estimés basés sur la distance de la réservation
+                        $reservationDistance = (float) ($row['reservation_distance_km'] ?? 0);
+                        $prixParKm = (float) ($row['prix_par_km'] ?? 250);
+                        if ($prixParKm <= 10) $prixParKm = 250; // auto-migration
+                        $pointsEstimes = $reservationDistance > 0
+                            ? max(1, (int) round($reservationDistance * $prixParKm))
+                            : max(0, (int) round((float) ($row['prix_snapshot'] ?? $row['trajet_prix'] ?? 0)));
                         $reservationType = (string) ($row['reservation_point_type'] ?? '');
                         $pointLabel = $reservationType === 'prise_en_charge'
                             ? 'Prise en charge'
                             : ($reservationType === 'depose' ? 'Dépose' : '');
-                        $paymentDeclared = ($row['payment_status'] ?? '') === 'declare_paye';
+                        $pointsGagnes = (int) ($row['points_earned'] ?? 0);
                         $tripDatetime = trim(
                             admin_format_date((string) ($row['date_depart'] ?? ''))
                             . ' '
@@ -249,20 +253,23 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                                     <span><?= htmlspecialchars(admin_reservation_status_label($status), ENT_QUOTES, 'UTF-8') ?></span>
                                 </span>
                             </td>
-                            <td data-sort-value="<?= number_format($montant, 2, '.', '') ?>"><span class="money-value"><?= number_format($montant, 2) ?> TND</span></td>
+                            <td data-sort-value="<?= $pointsEstimes ?>"><span class="money-value"><?= number_format($pointsEstimes, 0, '.', ' ') ?> pts</span></td>
                             <td class="compact-point">
                                 <?php if ($pointLabel !== '' && isset($row['reservation_point_lat'], $row['reservation_point_lng'])): ?>
                                     <span><?= htmlspecialchars($pointLabel, ENT_QUOTES, 'UTF-8') ?></span>
                                     <small class="admin-muted"><?= number_format((float) $row['reservation_point_lat'], 5) ?>, <?= number_format((float) $row['reservation_point_lng'], 5) ?></small>
+                                    <?php if ($reservationDistance > 0): ?>
+                                        <small class="admin-muted"><?= number_format($reservationDistance, 2) ?> km</small>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="admin-muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <?php if ($paymentDeclared): ?>
-                                    <span class="compact-payment is-declared">Déclaré</span>
+                            <td data-sort-value="<?= $pointsGagnes ?>">
+                                <?php if ($pointsGagnes > 0): ?>
+                                    <span class="compact-payment is-declared"><?= number_format($pointsGagnes, 0, '.', ' ') ?> pts</span>
                                 <?php else: ?>
-                                    <span class="compact-payment">Non applicable</span>
+                                    <span class="compact-payment">En attente</span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -277,12 +284,13 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                 </tbody>
             </table>
         </div>
+        <?= isset($resPagination) ? $resPagination->render() : '' ?>
     </section>
 
     <section class="detail-section">
         <h2 class="section-subtitle">Traçabilité des trajets</h2>
-        <div class="table-wrapper data-card">
-            <table class="data-table table-modern data-sortable-table">
+        <div class="table-wrapper data-card" style="overflow-x: auto; width: 100%;">
+            <table class="data-table table-modern data-sortable-table" style="min-width: 700px;">
                 <thead>
                 <tr>
                     <th class="data-sortable-column" data-sort-type="number">ID</th>
@@ -292,15 +300,15 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                     <th class="data-sortable-column" data-sort-type="date">Date / heure</th>
                     <th class="data-sortable-column" data-sort-type="number">Distance</th>
                     <th class="data-sortable-column" data-sort-type="number">Durée</th>
-                    <th class="data-sortable-column" data-sort-type="number">Prix par km</th>
+                    <th class="data-sortable-column" data-sort-type="number">Bar. points (pts/km)</th>
                     <th>Route</th>
                     <th>Calculé le</th>
-                    <th class="data-sortable-column" data-sort-type="money">Prix par passager</th>
+                    <th class="data-sortable-column" data-sort-type="number">Points conducteur</th>
                     <th>Places</th>
                     <th class="data-sortable-column" data-sort-type="number">Confirmées</th>
                     <th class="data-sortable-column" data-sort-type="number">En attente</th>
-                    <th class="data-sortable-column" data-sort-type="money">Total déclaré</th>
-                    <th class="data-sortable-column" data-sort-type="money">Recette confirmée estimée</th>
+                    <th class="data-sortable-column" data-sort-type="number">Points attribués</th>
+                    <th class="data-sortable-column" data-sort-type="number">Points estimés</th>
                     <th>Détails</th>
                 </tr>
                 </thead>
@@ -344,20 +352,24 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if (isset($trip['prix_par_km']) && $trip['prix_par_km'] !== null): ?>
-                                    <?= number_format((float) $trip['prix_par_km'], 3) ?> TND / km
-                                <?php else: ?>
+                                <?php
+                                $barem = (float) ($trip['prix_par_km'] ?? 0);
+                                if ($barem <= 0): ?>
                                     -
+                                <?php elseif ($barem <= 10): ?>
+                                    <span class="admin-muted" title="Ancienne valeur monétaire, migration en attente"><?= number_format($barem, 3) ?> (legacy)</span>
+                                <?php else: ?>
+                                    <?= number_format($barem, 0) ?> pts/km
                                 <?php endif; ?>
                             </td>
                             <td><?= htmlspecialchars((string) ($trip['route_provider'] ?? '-'), ENT_QUOTES, 'UTF-8') ?></td>
                             <td><?= admin_format_datetime((string) ($trip['route_calculated_at'] ?? '')) ?></td>
-                            <td><span class="money-value"><?= number_format((float) ($trip['prix'] ?? 0), 2) ?> TND</span></td>
+                            <td><span class="money-value"><?= number_format(round(($trip['distance_km'] ?? 0) * ($trip['prix_par_km'] ?? 0)), 0, ',', ' ') ?> pts</span></td>
                             <td><?= (int) ($trip['places_total'] ?? 0) ?> total / <?= (int) ($trip['places_restantes'] ?? 0) ?> restantes</td>
                             <td><?= (int) ($trip['confirmed_count'] ?? 0) ?></td>
                             <td><?= (int) ($trip['pending_count'] ?? 0) ?></td>
-                            <td><span class="money-value"><?= number_format((float) ($trip['declared_total'] ?? 0), 2) ?> TND</span></td>
-                            <td><span class="money-value"><?= number_format((float) ($trip['estimated_confirmed_revenue'] ?? 0), 2) ?> TND</span></td>
+                            <td><span class="money-value"><?= number_format((int) ($trip['declared_total'] ?? 0), 0, '.', ' ') ?> pts</span></td>
+                            <td><span class="money-value"><?= number_format((int) ($trip['estimated_confirmed_revenue'] ?? 0), 0, '.', ' ') ?> pts</span></td>
                             <td>
                                 <a href="<?= BASE_URL ?>/index.php?page=admin&action=tripDetails&id=<?= (int) $trip['id'] ?>" class="btn btn-outline btn-xs">
                                     <?= ui_icon('view', 'icon icon-xs') ?>
@@ -370,12 +382,13 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                 </tbody>
             </table>
         </div>
+        <?= isset($tripPagination) ? $tripPagination->render() : '' ?>
     </section>
 
     <section class="detail-section">
         <h2 class="section-subtitle">Journal d'audit</h2>
-        <div class="table-wrapper data-card">
-            <table class="data-table audit-log-table data-sortable-table">
+        <div class="table-wrapper data-card" style="overflow-x: auto; width: 100%;">
+            <table class="data-table audit-log-table data-sortable-table" style="min-width: 700px;">
                 <thead>
                 <tr>
                     <th class="data-sortable-column" data-sort-type="date">Date/heure</th>
@@ -432,6 +445,7 @@ if (!function_exists('admin_trip_status_icon_trace')) {
                 </tbody>
             </table>
         </div>
+        <?= isset($auditPagination) ? $auditPagination->render() : '' ?>
     </section>
 </div>
 

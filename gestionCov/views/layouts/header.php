@@ -1,7 +1,7 @@
 <?php
 /**
  * views/layouts/header.php
- * En-tête commun - CHAYA3NI
+ * En-tête commun - SesameRide
  */
 
 if (!function_exists('ui_icon')) {
@@ -47,7 +47,9 @@ if (!function_exists('ui_icon')) {
             'check' => '<path d="M5 13l4 4L19 7"/>',
             'x' => '<path d="M6 6l12 12M18 6L6 18"/>',
             'lock' => '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/>',
-            'info' => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
+            'info'    => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
+            'trophy'  => '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 3h12v7a6 6 0 01-12 0V3z"/><path d="M4 7H6M18 7h2"/>',
+            'award'   => '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>',
         ];
 
         if (!isset($icons[$name])) {
@@ -106,109 +108,134 @@ $roleLabel = match ($role) {
     'professeur' => 'Professeur',
     default => ucfirst($role),
 };
+
+$logoUrl = BASE_URL . '/index.php';
+if ($currentUser) {
+    if ($role === 'admin') {
+        $logoUrl = BASE_URL . '/index.php?page=admin';
+    } elseif ($role === 'conducteur') {
+        $logoUrl = BASE_URL . '/index.php?page=trajet&action=myTrajets';
+    } else {
+        $logoUrl = BASE_URL . '/index.php?page=trajet';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="CHAYA3NI - Plateforme de covoiturage pour la communauté Sesame.">
-    <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') . ' - ' : '' ?>CHAYA3NI | Covoiturage</title>
+    <meta name="description" content="SesameRide - Plateforme de covoiturage universitaire en Tunisie. Trouvez et proposez des trajets facilement.">
+    <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') . ' — ' : '' ?>SesameRide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>/public/css/style.css">
+    <link rel="stylesheet" href="<?= BASE_URL ?>/public/css/enterprise.css">
     <?php if (!empty($includeMap)): ?>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
     <?php endif; ?>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<nav class="navbar">
-    <div class="nav-container">
-        <a href="<?= BASE_URL ?>/index.php" class="nav-brand">
-            <?= ui_icon('car', 'icon icon-md brand-mark') ?>
-            <span class="brand-name">CHAYA3NI</span>
-        </a>
+<?php if ($currentUser): ?>
+<div class="app-layout">
+    <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-brand">
+            <a href="<?= $logoUrl ?>" class="nav-brand">
+                <?= ui_icon('car', 'icon icon-md brand-mark') ?>
+                <span class="brand-name">SesameRide</span>
+            </a>
+            <button class="close-sidebar" id="closeSidebarBtn" aria-label="Fermer le menu">
+                <?= ui_icon('x', 'icon icon-sm') ?>
+            </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="<?= BASE_URL ?>/index.php?page=trajet" class="sidebar-nav-item <?= ($isTrajetPage && in_array($currentAction, ['index', 'show'], true)) ? 'is-active' : '' ?>">
+                <?= ui_icon('route', 'icon icon-sm') ?>
+                <span>Tous les trajets</span>
+            </a>
 
-        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
-            <span></span><span></span><span></span>
-        </button>
-
-        <ul class="nav-links" id="navLinks">
-            <li class="nav-item">
-                <a href="<?= BASE_URL ?>/index.php?page=trajet" class="<?= $navClass($isTrajetPage && in_array($currentAction, ['index', 'show'], true)) ?>">
-                    <?= ui_icon('route', 'icon icon-sm nav-link-icon') ?>
-                    <span>Trajets</span>
+            <?php if ($isConducteur): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=trajet&action=myTrajets" class="sidebar-nav-item <?= ($isTrajetPage && $currentAction === 'myTrajets') ? 'is-active' : '' ?>">
+                    <?= ui_icon('car', 'icon icon-sm') ?>
+                    <span>Mes trajets publiés</span>
                 </a>
-            </li>
+                <a href="<?= BASE_URL ?>/index.php?page=reservation&action=driverRequests" class="sidebar-nav-item <?= ($isReservationPage && $currentAction === 'driverRequests') ? 'is-active' : '' ?>">
+                    <?= ui_icon('reservation', 'icon icon-sm') ?>
+                    <span>Demandes reçues</span>
+                    <?php if ($pendingDemandCount > 0): ?>
+                        <span class="sidebar-badge"><?= (int) $pendingDemandCount ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=reward&action=index" class="sidebar-nav-item <?= ($currentPage === 'reward' && $currentAction === 'index') ? 'is-active' : '' ?>">
+                    <?= ui_icon('trophy', 'icon icon-sm') ?>
+                    <span>Mes Récompenses</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=trajet&action=create" class="sidebar-nav-item nav-cta-sidebar">
+                    <?= ui_icon('plus', 'icon icon-sm') ?>
+                    <span>Proposer un trajet</span>
+                </a>
+            <?php elseif ($isPassenger): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=reservation&action=myReservations" class="sidebar-nav-item <?= ($isReservationPage && $currentAction === 'myReservations') ? 'is-active' : '' ?>">
+                    <?= ui_icon('reservation', 'icon icon-sm') ?>
+                    <span>Mes réservations</span>
+                </a>
+            <?php elseif ($role === 'admin'): ?>
+                <a href="<?= BASE_URL ?>/index.php?page=admin" class="sidebar-nav-item <?= ($isAdminPage && $currentAction === 'index') ? 'is-active' : '' ?>">
+                    <?= ui_icon('admin', 'icon icon-sm') ?>
+                    <span>Tableau de bord</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=admin&action=users" class="sidebar-nav-item <?= ($isAdminPage && $currentAction === 'users') ? 'is-active' : '' ?>">
+                    <?= ui_icon('users', 'icon icon-sm') ?>
+                    <span>Utilisateurs</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=admin&action=trajets" class="sidebar-nav-item <?= ($isAdminPage && $currentAction === 'trajets') ? 'is-active' : '' ?>">
+                    <?= ui_icon('route', 'icon icon-sm') ?>
+                    <span>Supervision trajets</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=admin&action=traceability" class="sidebar-nav-item <?= ($isAdminPage && in_array($currentAction, ['traceability', 'tripDetails', 'reservationDetails'], true)) ? 'is-active' : '' ?>">
+                    <?= ui_icon('traceability', 'icon icon-sm') ?>
+                    <span>Traçabilité</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=admin&action=finances" class="sidebar-nav-item <?= ($isAdminPage && $currentAction === 'finances') ? 'is-active' : '' ?>">
+                    <?= ui_icon('price', 'icon icon-sm') ?>
+                    <span>Finances / Points</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=reward&action=admin" class="sidebar-nav-item <?= ($currentPage === 'reward' && $currentAction === 'admin') ? 'is-active' : '' ?>">
+                    <?= ui_icon('trophy', 'icon icon-sm') ?>
+                    <span>Récompenses</span>
+                </a>
+                <a href="<?= BASE_URL ?>/index.php?page=admin&action=settings" class="sidebar-nav-item <?= ($isAdminPage && $currentAction === 'settings') ? 'is-active' : '' ?>">
+                    <?= ui_icon('edit', 'icon icon-sm') ?>
+                    <span>Paramètres</span>
+                </a>
+            <?php endif; ?>
+        </nav>
+    </aside>
 
-            <?php if ($currentUser): ?>
-                <?php if ($isConducteur): ?>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=trajet&action=myTrajets" class="<?= $navClass($isTrajetPage && $currentAction === 'myTrajets') ?>">
-                            <?= ui_icon('car', 'icon icon-sm nav-link-icon') ?>
-                            <span>Mes trajets</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=trajet&action=create" class="<?= $navClass($isTrajetPage && in_array($currentAction, ['create', 'edit'], true), true) ?>">
-                            <?= ui_icon('plus', 'icon icon-sm nav-link-icon') ?>
-                            <span>Proposer</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=reservation&action=driverRequests" class="<?= $navClass($isReservationPage && $currentAction === 'driverRequests') ?>">
-                            <?= ui_icon('reservation', 'icon icon-sm nav-link-icon') ?>
-                            <span>Demandes</span>
-                            <?php if ($pendingDemandCount > 0): ?>
-                                <span class="badge count-badge"><?= (int) $pendingDemandCount ?></span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
-                <?php elseif ($isPassenger): ?>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=reservation&action=myReservations" class="<?= $navClass($isReservationPage && $currentAction === 'myReservations') ?>">
-                            <?= ui_icon('reservation', 'icon icon-sm nav-link-icon') ?>
-                            <span>Mes réservations</span>
-                        </a>
-                    </li>
-                <?php elseif ($role === 'admin'): ?>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=admin" class="<?= $navClass($isAdminPage && $currentAction === 'index') ?>">
-                            <?= ui_icon('admin', 'icon icon-sm nav-link-icon') ?>
-                            <span>Admin</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=admin&action=traceability" class="<?= $navClass($isAdminPage && in_array($currentAction, ['traceability', 'tripDetails', 'reservationDetails'], true)) ?>">
-                            <?= ui_icon('traceability', 'icon icon-sm nav-link-icon') ?>
-                            <span>Traçabilité</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="<?= BASE_URL ?>/index.php?page=admin&action=finances" class="<?= $navClass($isAdminPage && $currentAction === 'finances') ?>">
-                            <?= ui_icon('price', 'icon icon-sm nav-link-icon') ?>
-                            <span>Finances</span>
-                        </a>
-                    </li>
-                <?php endif; ?>
-
+    <div class="app-wrapper">
+        <header class="app-topbar">
+            <div class="topbar-left">
+                <button class="open-sidebar" id="openSidebarBtn" aria-label="Ouvrir le menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+            
+            <div class="topbar-right">
                 <?php if ($role !== 'admin'): ?>
-                <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/index.php?page=message" class="<?= $navClass($isMessagePage) ?> nav-msg">
-                        <?= ui_icon('messages', 'icon icon-sm nav-link-icon') ?>
-                        <span>Messages</span>
-                        <?php if ($unreadCount > 0): ?>
-                            <span class="badge count-badge"><?= $unreadCount ?></span>
-                        <?php endif; ?>
-                    </a>
-                </li>
+                <a href="<?= BASE_URL ?>/index.php?page=message" class="nav-link nav-msg" title="Messages">
+                    <?= ui_icon('messages', 'icon icon-md') ?>
+                    <?php if ($unreadCount > 0): ?>
+                        <span class="badge count-badge"><?= $unreadCount ?></span>
+                    <?php endif; ?>
+                </a>
                 <?php endif; ?>
 
-                <li class="nav-user-menu">
-                    <button class="nav-avatar" id="userMenuBtn" type="button" aria-label="Menu utilisateur" aria-expanded="false" aria-controls="userDropdown">
+                <div class="nav-user-menu">
+                    <button class="nav-avatar" id="userMenuBtn" type="button" aria-expanded="false" aria-controls="userDropdown">
                         <?= strtoupper(substr(htmlspecialchars($currentUser['prenom'], ENT_QUOTES, 'UTF-8'), 0, 1)) ?>
                     </button>
                     <div class="user-dropdown" id="userDropdown">
@@ -221,24 +248,45 @@ $roleLabel = match ($role) {
                             <span>Déconnexion</span>
                         </a>
                     </div>
-                </li>
-            <?php else: ?>
-                <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/index.php?page=auth&action=login" class="<?= $navClass($currentPage === 'auth' && $currentAction === 'login') ?>">
-                        <?= ui_icon('login', 'icon icon-sm nav-link-icon') ?>
-                        <span>Connexion</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="<?= BASE_URL ?>/index.php?page=auth&action=register" class="<?= $navClass($currentPage === 'auth' && $currentAction === 'register', true) ?>">
-                        <?= ui_icon('register', 'icon icon-sm nav-link-icon') ?>
-                        <span>S'inscrire</span>
-                    </a>
-                </li>
-            <?php endif; ?>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-content">
+<?php else: ?>
+<nav class="navbar public-navbar">
+    <div class="nav-container">
+        <a href="<?= BASE_URL ?>/index.php" class="nav-brand">
+            <?= ui_icon('car', 'icon icon-md brand-mark') ?>
+            <span class="brand-name">SesameRide</span>
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>/index.php?page=trajet" class="<?= $navClass($isTrajetPage && in_array($currentAction, ['index', 'show'], true)) ?>">
+                    <?= ui_icon('route', 'icon icon-sm nav-link-icon') ?>
+                    <span>Trajets</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>/index.php?page=auth&action=login" class="<?= $navClass($currentPage === 'auth' && $currentAction === 'login') ?>">
+                    <?= ui_icon('login', 'icon icon-sm nav-link-icon') ?>
+                    <span>Connexion</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="<?= BASE_URL ?>/index.php?page=auth&action=register" class="<?= $navClass($currentPage === 'auth' && $currentAction === 'register', true) ?>">
+                    <?= ui_icon('register', 'icon icon-sm nav-link-icon') ?>
+                    <span>S'inscrire</span>
+                </a>
+            </li>
         </ul>
     </div>
 </nav>
+<main class="main-content public-main page-shell">
+<?php endif; ?>
 
 <?php if ($flash): ?>
 <div class="flash flash-<?= htmlspecialchars($flash['type'], ENT_QUOTES, 'UTF-8') ?>" id="flashMsg">
@@ -258,5 +306,3 @@ $roleLabel = match ($role) {
     </button>
 </div>
 <?php endif; ?>
-
-<main class="main-content page-shell">

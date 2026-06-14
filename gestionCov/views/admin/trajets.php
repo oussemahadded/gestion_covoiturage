@@ -21,7 +21,7 @@
                 <th class="data-sortable-column" data-sort-type="text">Conducteur</th>
                 <th class="data-sortable-column" data-sort-type="date">Date</th>
                 <th class="data-sortable-column" data-sort-type="text">Heure</th>
-                <th class="data-sortable-column" data-sort-type="money">Prix</th>
+                <th class="data-sortable-column" data-sort-type="number">Points conducteur</th>
                 <th>Places</th>
                 <th>Action</th>
             </tr>
@@ -38,7 +38,7 @@
                     <td><?= htmlspecialchars($t['prenom'] . ' ' . $t['nom'], ENT_QUOTES, 'UTF-8') ?></td>
                     <td><?= date('d/m/Y', strtotime($t['date_depart'])) ?></td>
                     <td><?= substr($t['heure_depart'], 0, 5) ?></td>
-                    <td><?= number_format((float) $t['prix'], 2) ?> TND</td>
+                    <td><?= number_format(round($t['distance_km'] * $t['prix_par_km']), 0, ',', ' ') ?> pts</td>
                     <td>
                         <span class="places-badge <?= (int) $t['places_restantes'] === 0 ? 'places-full' : '' ?>">
                             <?= (int) $t['places_restantes'] ?>/<?= (int) $t['places_total'] ?>

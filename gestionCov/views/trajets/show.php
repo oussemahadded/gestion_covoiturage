@@ -111,12 +111,12 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('price', 'icon icon-sm') ?></span>
                     <div>
-                        <small>Prix par km</small>
+                        <small>Barème de points / km</small>
                         <strong>
                             <?php if (isset($trajet['prix_par_km']) && $trajet['prix_par_km'] !== null): ?>
-                                <?= number_format((float) $trajet['prix_par_km'], 3) ?> TND / km
+                                <?= number_format((float) $trajet['prix_par_km'], 0) ?> pts / km
                             <?php else: ?>
-                                -
+                                250 pts / km
                             <?php endif; ?>
                         </strong>
                     </div>
@@ -131,8 +131,8 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 <div class="meta-item detail-kv-item">
                     <span class="meta-icon"><?= ui_icon('price', 'icon icon-sm') ?></span>
                     <div>
-                        <small>Prix final par passager</small>
-                        <strong class="price-big"><?= number_format((float) $trajet['prix'], 2) ?> TND</strong>
+                        <small>Points conducteur (trajet complet)</small>
+                        <strong class="price-big"><?= number_format(round($trajet['distance_km'] * $trajet['prix_par_km']), 0, ',', ' ') ?> pts</strong>
                     </div>
                 </div>
                 <div class="meta-item detail-kv-item">
@@ -289,7 +289,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                         <strong id="reservationPointValue">-</strong>
                                     </div>
                                     <div class="reservation-point-row detail-kv-item">
-                                        <small>Distance facturée</small>
+                                        <small>Distance de votre trajet</small>
                                         <strong><span id="reservationDistanceValue">-</span> km</strong>
                                     </div>
                                     <div class="reservation-point-row detail-kv-item">
@@ -297,8 +297,8 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                         <strong><span id="reservationDurationValue">-</span> min</strong>
                                     </div>
                                     <div class="reservation-point-row reservation-price-preview detail-kv-item">
-                                        <small>Prix estimé pour votre trajet</small>
-                                        <strong><span id="reservationPriceValue">-</span> TND</strong>
+                                        <small>Points conducteur estimés</small>
+                                        <strong><span id="reservationPriceValue">-</span> pts</strong>
                                     </div>
                                 </div>
                             </div>

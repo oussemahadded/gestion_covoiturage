@@ -10,10 +10,14 @@ $selectedRole = $old['role'] ?? 'etudiant';
 
 <div class="auth-page page-shell">
     <div class="auth-card auth-card--wide app-card section-card">
+        <a href="<?= BASE_URL ?>/index.php" class="back-link">
+            <?= ui_icon('arrow-left', 'icon icon-xs') ?>
+            Retour à l'accueil
+        </a>
         <div class="auth-header">
             <span class="auth-icon-wrap"><?= ui_icon('register', 'icon icon-lg') ?></span>
             <h1>Créer un compte</h1>
-            <p>Rejoignez la communauté CHAYA3NI</p>
+            <p>Rejoignez la communauté SesameRide</p>
         </div>
 
         <?php if (!empty($errors)): ?>

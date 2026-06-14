@@ -2,10 +2,14 @@
 
 <div class="auth-page page-shell">
     <div class="auth-card app-card section-card">
+        <a href="<?= BASE_URL ?>/index.php" class="back-link">
+            <?= ui_icon('arrow-left', 'icon icon-xs') ?>
+            Retour à l'accueil
+        </a>
         <div class="auth-header">
             <span class="auth-icon-wrap"><?= ui_icon('login', 'icon icon-lg') ?></span>
             <h1>Connexion</h1>
-            <p>Bienvenue sur CHAYA3NI. Connectez-vous à votre compte.</p>
+            <p>Bienvenue sur SesameRide. Connectez-vous à votre compte.</p>
         </div>
 
         <?php

@@ -797,7 +797,7 @@ function updateReservationPointSummary(pointEl, distanceEl, durationEl, priceEl,
         durationEl.textContent = data.durationMinutes !== null ? String(data.durationMinutes) : '-';
     }
     if (priceEl) {
-        priceEl.textContent = data.price.toFixed(2);
+        priceEl.textContent = Math.round(data.price);
     }
 }
 
@@ -886,11 +886,11 @@ function updateSuggestedPrice(distanceInput, prixParKmInput, prixInput, suggeste
         return;
     }
 
-    const suggested = Math.round(distanceKm * prixParKm * 100) / 100;
-    suggestedPriceValue.textContent = suggested.toFixed(2);
+    const suggested = Math.round(distanceKm * prixParKm);
+    suggestedPriceValue.textContent = suggested;
 
     if (prixInput) {
-        prixInput.value = suggested.toFixed(2);
+        prixInput.value = suggested;
     }
 
     if (typeof onUpdated === 'function') onUpdated();

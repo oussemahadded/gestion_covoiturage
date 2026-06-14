@@ -262,8 +262,10 @@ class Trajet
         try {
             $this->pdo->beginTransaction();
 
+            // Lock the trip row and fetch all needed fields including distance
             $stmt = $this->pdo->prepare(
-                'SELECT id, conducteur_id, date_depart, heure_depart, prix, statut_trajet,
+                'SELECT id, conducteur_id, date_depart, heure_depart,
+                        distance_km, statut_trajet,
                         (TIMESTAMP(date_depart, heure_depart) <= NOW()) AS is_past_departure
                  FROM trajets
                  WHERE id = ?
@@ -278,7 +280,7 @@ class Trajet
                     'success' => false,
                     'message' => 'Trajet introuvable ou accès refusé.',
                     'completed_reservations' => 0,
-                    'declared_total' => 0.0,
+                    'points_awarded' => 0,
                 ];
             }
 
@@ -290,7 +292,7 @@ class Trajet
                         ? 'Ce trajet est déjà terminé.'
                         : 'Ce trajet ne peut pas être marqué terminé.',
                     'completed_reservations' => 0,
-                    'declared_total' => 0.0,
+                    'points_awarded' => 0,
                 ];
             }
 
@@ -300,18 +302,19 @@ class Trajet
                     'success' => false,
                     'message' => "Ce trajet ne peut être marqué terminé qu'après son horaire de départ.",
                     'completed_reservations' => 0,
-                    'declared_total' => 0.0,
+                    'points_awarded' => 0,
                 ];
             }
 
+            // Lock confirmed reservations — driver must have at least one
             $confirmedStmt = $this->pdo->prepare(
-                'SELECT id, COALESCE(prix_snapshot, ?) AS declared_amount
+                'SELECT id, passager_id, trajet_id
                  FROM reservations
                  WHERE trajet_id = ?
                    AND statut = "confirmee"
                  FOR UPDATE'
             );
-            $confirmedStmt->execute([(float) $trajet['prix'], $trajetId]);
+            $confirmedStmt->execute([$trajetId]);
             $confirmedRows = $confirmedStmt->fetchAll();
             $completedReservations = count($confirmedRows);
 
@@ -319,17 +322,37 @@ class Trajet
                 $this->pdo->rollBack();
                 return [
                     'success' => false,
-                    'message' => 'Aucune réservation confirmée à déclarer pour ce trajet.',
+                    'message' => 'Aucune réservation confirmée pour ce trajet.',
                     'completed_reservations' => 0,
-                    'declared_total' => 0.0,
+                    'points_awarded' => 0,
                 ];
             }
 
-            $declaredTotal = 0.0;
-            foreach ($confirmedRows as $row) {
-                $declaredTotal += (float) ($row['declared_amount'] ?? 0);
+            // -------------------------------------------------------
+            // Points formula (conducteur only):
+            //   $totalPoints = max(1, round($distanceKm * $pointsParKm))
+            //   $pointsParKm is fetched from app_settings (fallback: 250)
+            // -------------------------------------------------------
+            $distanceKm = (float) ($trajet['distance_km'] ?? 0);
+
+            // Fetch points-per-km rate dynamically from app_settings
+            $settingStmt = $this->pdo->prepare(
+                'SELECT setting_value FROM app_settings WHERE setting_key = "prix_par_km" LIMIT 1'
+            );
+            $settingStmt->execute();
+            $settingRow = $settingStmt->fetch();
+            $pointsParKm = ($settingRow !== false && is_numeric($settingRow['setting_value']))
+                ? (float) $settingRow['setting_value']
+                : 250.0;
+            // Guard: auto-migrate old monetary values (≤ 10) to default
+            if ($pointsParKm <= 10.0) {
+                $pointsParKm = 250.0;
             }
 
+            // Apply exact formula — floor at 1 point minimum
+            $totalPoints = max(1, (int) round($distanceKm * $pointsParKm));
+
+            // Mark trip as completed
             $updateTrip = $this->pdo->prepare(
                 'UPDATE trajets
                  SET statut_trajet = "termine",
@@ -338,23 +361,69 @@ class Trajet
             );
             $updateTrip->execute([$trajetId]);
 
-            $updateReservations = $this->pdo->prepare(
-                'UPDATE reservations r
-                 INNER JOIN trajets t ON r.trajet_id = t.id
-                 SET r.payment_status = "declare_paye",
-                     r.paid_amount = COALESCE(r.prix_snapshot, t.prix),
-                     r.paid_at = NOW()
-                 WHERE r.trajet_id = ?
-                   AND r.statut = "confirmee"'
+            // Stamp each confirmed reservation with the points earned (driver's total)
+            $stampStmt = $this->pdo->prepare(
+                'UPDATE reservations
+                 SET points_earned = ?
+                 WHERE id = ? AND statut = "confirmee" AND (points_earned IS NULL OR points_earned = 0)'
             );
-            $updateReservations->execute([$trajetId]);
+            foreach ($confirmedRows as $row) {
+                $stampStmt->execute([$totalPoints, (int) $row['id']]);
+            }
+
+            // Award points to the DRIVER (conducteur) atomically
+            $addPointsStmt = $this->pdo->prepare(
+                'UPDATE utilisateurs
+                 SET points_total = points_total + ?
+                 WHERE id = ? AND role = "conducteur"'
+            );
+            $addPointsStmt->execute([$totalPoints, $conducteurId]);
+
+            // Unlock Sésame eligibility flag once driver reaches tier threshold
+            $checkStmt = $this->pdo->prepare(
+                'SELECT points_total, eligibilite_remise_sesame_at
+                 FROM utilisateurs WHERE id = ?'
+            );
+            $checkStmt->execute([$conducteurId]);
+            $conducteurRow = $checkStmt->fetch();
+
+            if (
+                $conducteurRow
+                && (int) $conducteurRow['points_total'] >= 5000
+                && empty($conducteurRow['eligibilite_remise_sesame_at'])
+            ) {
+                $eligStmt = $this->pdo->prepare(
+                    'UPDATE utilisateurs
+                     SET eligibilite_remise_sesame_at = NOW()
+                     WHERE id = ? AND eligibilite_remise_sesame_at IS NULL'
+                );
+                $eligStmt->execute([$conducteurId]);
+            }
+
+            // Insert audit row into points_history using modern schema:
+            //   utilisateur_id, points_awarded, entity_type ('trajet_complete'), entity_id (trajet id)
+            $historyStmt = $this->pdo->prepare(
+                'INSERT INTO points_history
+                    (utilisateur_id, points_awarded, entity_type, entity_id)
+                 VALUES (?, ?, "trajet_complete", ?)'
+            );
+            $historyStmt->execute([$conducteurId, $totalPoints, $trajetId]);
 
             $this->pdo->commit();
+
+            // Sync reward tier history outside the transaction (non-critical)
+            try {
+                $rewardModel = new Reward();
+                $rewardModel->syncRewardHistory($conducteurId);
+            } catch (Throwable $re) {
+                error_log('[REWARD SYNC] ' . $re->getMessage());
+            }
+
             return [
                 'success' => true,
-                'message' => 'Trajet terminé. Paiements en espèces déclarés pour les réservations confirmées.',
+                'message' => 'Trajet terminé. ' . number_format($totalPoints, 0, ',', ' ') . ' point(s) attribués.',
                 'completed_reservations' => $completedReservations,
-                'declared_total' => $declaredTotal,
+                'points_awarded' => $totalPoints,
             ];
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -365,7 +434,7 @@ class Trajet
                 'success' => false,
                 'message' => 'Erreur lors de la déclaration du trajet terminé.',
                 'completed_reservations' => 0,
-                'declared_total' => 0.0,
+                'points_awarded' => 0,
             ];
         }
     }

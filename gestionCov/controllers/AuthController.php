@@ -201,6 +201,10 @@ class AuthController
                     'statut_compte' => $status,
                 ];
 
+                $jwtPayload = ['user' => $_SESSION['user']];
+                $jwtToken = JWT::encode($jwtPayload);
+                setcookie('jwt_token', $jwtToken, time() + (24 * 60 * 60), '/', '', false, true);
+
                 $this->audit(
                     (int) $user['id'],
                     'user_login',
@@ -245,6 +249,7 @@ class AuthController
 
         $_SESSION = [];
         session_destroy();
+        setcookie('jwt_token', '', time() - 3600, '/');
         $this->redirect(BASE_URL . '/index.php?page=auth&action=login');
     }
 }

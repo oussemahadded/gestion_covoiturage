@@ -67,23 +67,54 @@ require_once ROOT_PATH . '/views/layouts/header.php';
             </a>
         </div>
     <?php else: ?>
-        <div class="table-wrapper data-card">
-            <table class="data-table table-modern">
-                <thead>
-                <tr>
-                    <th>Trajet</th>
-                    <th>Date</th>
-                    <th>Heure</th>
-                    <th>Distance</th>
-                    <th>Durée</th>
-                    <th>Prix</th>
-                    <th>Places</th>
-                    <th>Statut trajet</th>
-                    <th>Actions</th>
-                </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($trajets as $t): ?>
+        <?php
+        $activeTrips = [];
+        $pastTrips = [];
+        foreach ($trajets as $t) {
+            if ($t['statut_trajet'] === 'annule' || $t['statut_trajet'] === 'termine' || trip_datetime_passed($t)) {
+                $pastTrips[] = $t;
+            } else {
+                $activeTrips[] = $t;
+            }
+        }
+        $currentTab = $_GET['tab'] ?? 'active';
+        $displayedTrips = $currentTab === 'past' ? $pastTrips : $activeTrips;
+        ?>
+
+        <div class="filter-tabs" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--clr-border);">
+            <a href="<?= BASE_URL ?>/index.php?page=trajet&action=myTrajets&tab=active" 
+               style="padding: 0.75rem 1.5rem; text-decoration:none; color: <?= $currentTab !== 'past' ? 'var(--clr-primary)' : 'currentColor' ?>; font-weight: <?= $currentTab !== 'past' ? '600' : '500' ?>; border-bottom: 3px solid <?= $currentTab !== 'past' ? 'var(--clr-primary)' : 'transparent' ?>; margin-bottom: -1px; transition: all 0.2s;">
+                Actifs & À venir (<?= count($activeTrips) ?>)
+            </a>
+            <a href="<?= BASE_URL ?>/index.php?page=trajet&action=myTrajets&tab=past" 
+               style="padding: 0.75rem 1.5rem; text-decoration:none; color: <?= $currentTab === 'past' ? 'var(--clr-primary)' : 'currentColor' ?>; font-weight: <?= $currentTab === 'past' ? '600' : '500' ?>; border-bottom: 3px solid <?= $currentTab === 'past' ? 'var(--clr-primary)' : 'transparent' ?>; margin-bottom: -1px; transition: all 0.2s;">
+                Historique & Annulés (<?= count($pastTrips) ?>)
+            </a>
+        </div>
+
+        <?php if (empty($displayedTrips)): ?>
+            <div class="empty-state-box empty-state-polished">
+                <span class="empty-illustration"><?= ui_icon('car', 'icon icon-xl') ?></span>
+                <p>Aucun trajet dans cette catégorie.</p>
+            </div>
+        <?php else: ?>
+            <div class="table-wrapper data-card">
+                <table class="data-table table-modern">
+                    <thead>
+                    <tr>
+                        <th>Trajet</th>
+                        <th>Date</th>
+                        <th>Heure</th>
+                        <th>Distance</th>
+                        <th>Durée</th>
+                        <th>Points conducteur</th>
+                        <th>Places</th>
+                        <th>Statut trajet</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($displayedTrips as $t): ?>
                     <tr>
                         <td>
                             <strong><?= htmlspecialchars($t['ville_depart'], ENT_QUOTES, 'UTF-8') ?></strong>
@@ -106,7 +137,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                 -
                             <?php endif; ?>
                         </td>
-                        <td><span class="money-value"><?= number_format((float) $t['prix'], 2) ?> TND</span></td>
+                        <td><span class="money-value"><?= number_format(round($t['distance_km'] * $t['prix_par_km']), 0, ',', ' ') ?> pts</span></td>
                         <td>
                             <span class="places-badge <?= (int) $t['places_restantes'] === 0 ? 'places-full' : '' ?>">
                                 <?= (int) $t['places_restantes'] ?>/<?= (int) $t['places_total'] ?>
@@ -153,7 +184,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                 <form action="<?= BASE_URL ?>/index.php?page=trajet&action=complete"
                                       method="POST"
                                       class="inline-form"
-                                      onsubmit="return confirm('Confirmer que ce trajet est terminé ? Les réservations confirmées seront déclarées payées en espèces.')">
+                                      onsubmit="return confirm('Confirmer que ce trajet est terminé ? Les points seront attribués au conducteur.')">
                                     <input type="hidden" name="trajet_id" value="<?= (int) $t['id'] ?>">
                                     <button type="submit" class="btn btn-success btn-xs">
                                         <?= ui_icon('check', 'icon icon-xs') ?>
@@ -167,6 +198,7 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                 </tbody>
             </table>
         </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

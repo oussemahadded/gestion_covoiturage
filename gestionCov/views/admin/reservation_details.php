@@ -94,8 +94,8 @@ $reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
                 <span><?= htmlspecialchars(admin_rd_status_label($status), ENT_QUOTES, 'UTF-8') ?></span>
             </span>
         </p>
-        <p><strong>Montant estimé:</strong> <span class="money-value"><?= number_format((float) ($reservation['montant_estime'] ?? 0), 2) ?> TND</span></p>
-        <p><strong>Prix snapshot (réservation):</strong> <span class="money-value"><?= number_format((float) (($reservation['prix_snapshot'] ?? $reservation['trajet_prix'] ?? 0)), 2) ?> TND</span></p>
+        <p><strong>Points estimés:</strong> <span class="money-value"><?= number_format((float) ($reservation['montant_estime'] ?? 0), 0, '.', ' ') ?> pts</span></p>
+        <p><strong>Points snapshot (réservation):</strong> <span class="money-value"><?= number_format((float) (($reservation['prix_snapshot'] ?? $reservation['trajet_prix'] ?? 0)), 0, '.', ' ') ?> pts</span></p>
         <p>
             <strong>Statut paiement:</strong>
             <?php if ($paymentStatus === 'declare_paye'): ?>
@@ -109,7 +109,7 @@ $reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
         </p>
         <p><strong>Code statut paiement:</strong> <?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?></p>
         <?php if ($paymentStatus === 'declare_paye'): ?>
-            <p><strong>Montant déclaré:</strong> <span class="money-value"><?= number_format((float) ($reservation['paid_amount'] ?? $reservation['montant_estime'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Points déclarés:</strong> <span class="money-value"><?= number_format((float) ($reservation['paid_amount'] ?? $reservation['montant_estime'] ?? 0), 0, '.', ' ') ?> pts</span></p>
             <p><strong>Déclaré le:</strong> <?= admin_rd_datetime((string) ($reservation['paid_at'] ?? '')) ?></p>
         <?php endif; ?>
     </section>
@@ -121,7 +121,7 @@ $reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
             <p><strong>Coordonnées:</strong> <?= number_format((float) $reservation['reservation_point_lat'], 5) ?>, <?= number_format((float) $reservation['reservation_point_lng'], 5) ?></p>
             <p><strong>Distance facturée:</strong> <?= $reservationDistance !== null ? number_format((float) $reservationDistance, 2) . ' km' : '-' ?></p>
             <p><strong>Durée estimée:</strong> <?= $reservationDuration !== null ? (int) $reservationDuration . ' min' : '-' ?></p>
-            <p><strong>Prix réservation:</strong> <span class="money-value"><?= number_format((float) $reservationPrice, 2) ?> TND</span></p>
+            <p><strong>Points réservation:</strong> <span class="money-value"><?= number_format((float) $reservationPrice, 0, '.', ' ') ?> pts</span></p>
         <?php else: ?>
             <p class="text-muted">Aucune information de point sélectionné.</p>
         <?php endif; ?>
@@ -150,7 +150,7 @@ $reservationDuration = $reservation['reservation_duree_minutes'] ?? null;
             <p><strong>Route:</strong> <?= htmlspecialchars((string) ($reservation['ville_depart'] ?? ''), ENT_QUOTES, 'UTF-8') ?> → <?= htmlspecialchars((string) ($reservation['ville_arrivee'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
             <p><strong>Date:</strong> <?= admin_rd_date((string) ($reservation['date_depart'] ?? '')) ?></p>
             <p><strong>Heure:</strong> <?= htmlspecialchars(substr((string) ($reservation['heure_depart'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8') ?></p>
-            <p><strong>Prix par passager (trajet):</strong> <span class="money-value"><?= number_format((float) ($reservation['trajet_prix'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Points par passager (trajet):</strong> <span class="money-value"><?= number_format((float) ($reservation['trajet_prix'] ?? 0), 0, '.', ' ') ?> pts</span></p>
             <p><strong>Statut trajet:</strong> <?= htmlspecialchars((string) ($reservation['statut_trajet'] ?? 'publie'), ENT_QUOTES, 'UTF-8') ?></p>
             <p><strong>Terminé le:</strong> <?= admin_rd_datetime((string) ($reservation['completed_at'] ?? '')) ?></p>
             <p><strong>Description:</strong> <?= nl2br(htmlspecialchars((string) ($reservation['trajet_description'] ?? '-'), ENT_QUOTES, 'UTF-8')) ?></p>

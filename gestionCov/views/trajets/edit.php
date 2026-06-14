@@ -66,7 +66,7 @@ if (!empty($dateIso)) {
             <div class="publish-ride-steps" aria-hidden="true">
                 <span class="route-pill">1. Direction</span>
                 <span class="route-pill">2. Circuit</span>
-                <span class="route-pill">3. Prix et places</span>
+                <span class="route-pill">3. Points et places</span>
                 <span class="route-pill">4. Date et heure</span>
                 <span class="route-pill">5. Confirmation</span>
             </div>
@@ -152,27 +152,27 @@ if (!empty($dateIso)) {
                 <div class="price-estimate-box section-card">
                     <div class="form-row">
                         <div class="form-group">
-                            <label><?= ui_icon('price', 'icon icon-xs') ?> Tarif kilométrique fixé par l'administration</label>
+                            <label><?= ui_icon('price', 'icon icon-xs') ?> Barème de points fixé par l'administration</label>
                             <div class="admin-rate-display">
-                                <span class="admin-rate-value"><?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?></span>
-                                <span class="admin-rate-unit">TND / km</span>
+                                <span class="admin-rate-value"><?= htmlspecialchars(number_format((float) $prixParKm, 0, '.', ''), ENT_QUOTES, 'UTF-8') ?></span>
+                                <span class="admin-rate-unit">pts / km</span>
                                 <?= ui_icon('lock', 'icon icon-xs') ?>
                             </div>
                             <input type="hidden" id="prix_par_km" name="prix_par_km" value="<?= htmlspecialchars(number_format((float) $prixParKm, 3, '.', ''), ENT_QUOTES, 'UTF-8') ?>">
                         </div>
                         <div class="form-group">
-                            <label>Prix calculé automatiquement</label>
+                            <label>Points conducteur estimés</label>
                             <div class="suggested-price-row">
                                 <span class="suggested-price-value" id="suggestedPriceValue">-</span>
-                                <span class="suggested-price-unit">TND</span>
+                                <span class="suggested-price-unit">pts</span>
                             </div>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="prix">Prix final par passager (TND)</label>
-                            <input type="number" id="prix" name="prix" step="0.01" min="0" value="<?= htmlspecialchars((string) $prix, ENT_QUOTES, 'UTF-8') ?>" readonly tabindex="-1" class="input-computed">
-                            <p class="form-hint"><?= ui_icon('info', 'icon icon-xs') ?> Prix calculé automatiquement selon la distance du trajet.</p>
+                            <label for="prix">Points conducteur (calculé auto)</label>
+                            <input type="number" id="prix" name="prix" step="1" min="0" value="<?= htmlspecialchars((string) $prix, ENT_QUOTES, 'UTF-8') ?>" readonly tabindex="-1" class="input-computed">
+                            <p class="form-hint"><?= ui_icon('info', 'icon icon-xs') ?> Points calculés automatiquement : distance × <?= (int) $prixParKm ?> pts/km.</p>
                         </div>
                         <div class="form-group">
                             <label for="places_total"><?= ui_icon('seats', 'icon icon-xs') ?> Places totales *</label>

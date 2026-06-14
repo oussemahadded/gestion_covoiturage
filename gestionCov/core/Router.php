@@ -19,6 +19,7 @@ class Router
         'admin'       => 'AdminController',
         'avis'        => 'AvisController',
         'message'     => 'MessageController',
+        'reward'      => 'RewardController',
     ];
 
     public function dispatch(): void

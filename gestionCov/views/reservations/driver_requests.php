@@ -33,13 +33,18 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                     'refusee' => 'refused',
                     default => 'warning',
                 };
-                $reservationPrice = $r['reservation_price'] ?? $r['prix_snapshot'] ?? $r['prix'] ?? 0;
                 $reservationDistance = $r['reservation_distance_km'] ?? null;
                 $reservationType = (string) ($r['reservation_point_type'] ?? '');
                 $pointLabel = $reservationType === 'prise_en_charge'
                     ? 'Point de prise en charge'
                     : ($reservationType === 'depose' ? 'Point de dépose' : '');
                 $pointIcon = $reservationType === 'prise_en_charge' ? 'departure' : 'arrival';
+                // Points conducteur estimés pour cette réservation
+                $prixParKm = (float) ($r['prix_par_km'] ?? 250);
+                if ($prixParKm <= 10) $prixParKm = 250; // migration auto
+                $pointsEstimes = $reservationDistance !== null
+                    ? max(1, (int) round((float) $reservationDistance * $prixParKm))
+                    : (int) round((float) ($r['distance_km'] ?? 0) * $prixParKm);
                 ?>
                 <article class="reservation-request-card">
                     <div class="request-main-grid">
@@ -89,24 +94,20 @@ require_once ROOT_PATH . '/views/layouts/header.php';
                                     </div>
                                 </div>
                                 <?php if ($reservationDistance !== null): ?>
-                                    <div class="request-financial mt-1">Distance facturée: <?= number_format((float) $reservationDistance, 2) ?> km</div>
+                                    <div class="request-financial mt-1">Distance: <?= number_format((float) $reservationDistance, 2) ?> km</div>
                                 <?php endif; ?>
-                                <div class="request-financial">Prix estimé: <strong><?= number_format((float) $reservationPrice, 2) ?> TND</strong></div>
+                                <div class="request-reward mt-1">
+                                    <?= ui_icon('price', 'icon icon-xs') ?>
+                                    <span><strong><?= $pointsEstimes ?> pts</strong> estimés si terminé</span>
+                                </div>
                             <?php endif; ?>
                             
-                            <?php if (($r['statut'] ?? '') === 'confirmee' && ($r['payment_status'] ?? '') === 'declare_paye'): ?>
-                                <?php
-                                $paidAmount = $r['paid_amount'] ?? $r['montant_estime'] ?? $r['prix'] ?? 0;
-                                $paidAt = !empty($r['paid_at']) ? date('d/m/Y H:i', strtotime((string) $r['paid_at'])) : '-';
-                                ?>
+                            <?php if (($r['statut'] ?? '') === 'confirmee' && !empty($r['points_earned'])): ?>
                                 <div class="payment-status-block mt-2">
                                     <span class="payment-status-badge payment-status-declare_paye compact-badge">
-                                        <?= ui_icon('price', 'icon icon-xs') ?>
-                                        <span>Paiement déclaré</span>
+                                        <?= ui_icon('reward', 'icon icon-xs') ?>
+                                        <span><?= (int) $r['points_earned'] ?> points gagnés</span>
                                     </span>
-                                    <div class="text-xs text-muted mt-1">
-                                        <?= number_format((float) $paidAmount, 2) ?> TND le <?= htmlspecialchars($paidAt, ENT_QUOTES, 'UTF-8') ?>
-                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>

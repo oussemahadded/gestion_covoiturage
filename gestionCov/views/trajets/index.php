@@ -101,7 +101,7 @@ if ($dateDisplayValue === '' && !empty($_GET['date'])) {
                         </span>
                     </div>
                     <div class="tlc-action">
-                        <span class="tlc-price money-value"><?= number_format((float) $t['prix'], 2) ?> TND</span>
+                        <span class="tlc-price money-value"><?= number_format(round($t['distance_km'] * $t['prix_par_km']), 0, ',', ' ') ?> pts</span>
                         <a href="<?= BASE_URL ?>/index.php?page=trajet&action=show&id=<?= (int) $t['id'] ?>" class="btn btn-primary btn-sm">
                             <?= ui_icon('view', 'icon icon-xs') ?>
                             <span>Voir</span>

@@ -346,26 +346,21 @@ class TrajetController
         $result = $this->trajetModel->completeTrip($trajetId, $conducteurId);
 
         if (!empty($result['success'])) {
-            $declaredTotal = (float) ($result['declared_total'] ?? 0);
+            $pointsAwarded = (int) ($result['points_awarded'] ?? 0);
             $completedReservations = (int) ($result['completed_reservations'] ?? 0);
             $completedAt = date('Y-m-d H:i:s');
 
             $this->audit('trajet_completed', 'trajet', $trajetId, [
                 'conducteur_id' => $conducteurId,
                 'completed_reservations' => $completedReservations,
-                'declared_total' => $declaredTotal,
+                'points_awarded' => $pointsAwarded,
                 'completed_at' => $completedAt,
-                'payment_mode' => 'cash_declared',
-            ]);
-            $this->audit('cash_payment_declared', 'trajet', $trajetId, [
-                'declared_total' => $declaredTotal,
-                'reservation_count' => $completedReservations,
-                'payment_mode' => 'cash_declared',
+                'mode' => 'points_reward',
             ]);
 
             $this->flash(
                 'success',
-                'Trajet terminé. Total déclaré : ' . number_format($declaredTotal, 2) . ' TND.'
+                'Trajet terminé ! Vous avez gagné ' . $pointsAwarded . ' point(s) (' . $completedReservations . ' passager(s) confirmé(s)).'
             );
         } else {
             $this->flash('error', (string) ($result['message'] ?? 'Impossible de terminer ce trajet.'));
@@ -501,7 +496,7 @@ class TrajetController
             $errors[] = 'Heure de départ obligatoire.';
         }
         if ($data['prix'] < 0) {
-            $errors[] = 'Le prix ne peut pas être négatif.';
+            $errors[] = 'Les points ne peuvent pas être négatifs.';
         }
         if ($data['places_total'] < 1) {
             $errors[] = 'Au moins 1 place est requise.';

@@ -111,7 +111,7 @@ if (!function_exists('admin_trip_status_icon_detail')) {
             <p><strong>Trajet:</strong> <?= htmlspecialchars((string) ($trip['ville_depart'] ?? ''), ENT_QUOTES, 'UTF-8') ?> → <?= htmlspecialchars((string) ($trip['ville_arrivee'] ?? ''), ENT_QUOTES, 'UTF-8') ?></p>
             <p><strong>Date:</strong> <?= admin_detail_date((string) ($trip['date_depart'] ?? '')) ?></p>
             <p><strong>Heure:</strong> <?= htmlspecialchars(substr((string) ($trip['heure_depart'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8') ?></p>
-            <p><strong>Prix par passager:</strong> <span class="money-value"><?= number_format((float) ($trip['prix'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Points conducteur:</strong> <span class="money-value"><?= number_format(round(($trip['distance_km'] ?? 0) * ($trip['prix_par_km'] ?? 0)), 0, ',', ' ') ?> pts</span></p>
             <p>
                 <strong>Distance:</strong>
                 <?php if (isset($trip['distance_km']) && $trip['distance_km'] !== null): ?>
@@ -129,9 +129,9 @@ if (!function_exists('admin_trip_status_icon_detail')) {
                 <?php endif; ?>
             </p>
             <p>
-                <strong>Prix par km:</strong>
+                <strong>Barème de points:</strong>
                 <?php if (isset($trip['prix_par_km']) && $trip['prix_par_km'] !== null): ?>
-                    <?= number_format((float) $trip['prix_par_km'], 3) ?> TND / km
+                    <?= number_format((float) $trip['prix_par_km'], 0) ?> pts / km
                 <?php else: ?>
                     -
                 <?php endif; ?>
@@ -177,9 +177,9 @@ if (!function_exists('admin_trip_status_icon_detail')) {
             <p><strong>En attente:</strong> <?= (int) ($tripSummary['pending_count'] ?? 0) ?></p>
             <p><strong>Refusées:</strong> <?= (int) ($tripSummary['refused_count'] ?? 0) ?></p>
             <p><strong>Annulées:</strong> <?= (int) ($tripSummary['cancelled_count'] ?? 0) ?></p>
-            <p><strong>Total confirmé estimé:</strong> <span class="money-value"><?= number_format((float) ($tripSummary['estimated_confirmed_revenue'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Points confirmés estimés:</strong> <span class="money-value"><?= number_format((float) ($tripSummary['estimated_confirmed_revenue'] ?? 0), 0, '.', ' ') ?> pts</span></p>
             <p><strong>Réservations déclarées payées:</strong> <?= (int) ($tripSummary['paid_declared_count'] ?? 0) ?></p>
-            <p><strong>Recette déclarée:</strong> <span class="money-value"><?= number_format((float) ($tripSummary['declared_total'] ?? 0), 2) ?> TND</span></p>
+            <p><strong>Points attribués:</strong> <span class="money-value"><?= number_format((float) ($tripSummary['declared_total'] ?? 0), 0, '.', ' ') ?> pts</span></p>
         </section>
 
         <?php if (!empty($trip['route_geometry'])): ?>
@@ -208,8 +208,8 @@ if (!function_exists('admin_trip_status_icon_detail')) {
                     <th class="data-sortable-column" data-sort-type="date">Réservé le</th>
                     <th class="data-sortable-column" data-sort-type="text">Point</th>
                     <th class="data-sortable-column" data-sort-type="number">Distance</th>
-                    <th class="data-sortable-column" data-sort-type="money">Prix</th>
-                    <th class="data-sortable-column" data-sort-type="text">Paiement</th>
+                    <th class="data-sortable-column" data-sort-type="number">Points estimés</th>
+                    <th class="data-sortable-column" data-sort-type="text">Points gagnés</th>
                     <th>Détails</th>
                 </tr>
                 </thead>
@@ -228,7 +228,15 @@ if (!function_exists('admin_trip_status_icon_detail')) {
                         $pointLabel = $reservationType === 'prise_en_charge'
                             ? 'Prise en charge'
                             : ($reservationType === 'depose' ? 'Dépose' : '');
+                        
+                        $prixParKm = (float) ($trip['prix_par_km'] ?? 250);
+                        if ($prixParKm <= 10) $prixParKm = 250;
+                        $pointsEstimes = $reservationDistance !== null
+                            ? max(1, (int) round($reservationDistance * $prixParKm))
+                            : max(0, (int) round((float) $reservationPrice));
+                            
                         $paymentDeclared = ($row['payment_status'] ?? '') === 'declare_paye';
+                        $pointsGagnes = (int) ($row['points_earned'] ?? 0);
                         ?>
                         <tr>
                             <td data-sort-value="<?= (int) ($row['reservation_id'] ?? 0) ?>">#<?= (int) ($row['reservation_id'] ?? 0) ?></td>
@@ -262,12 +270,12 @@ if (!function_exists('admin_trip_status_icon_detail')) {
                                     <span class="admin-muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td data-sort-value="<?= number_format((float) $reservationPrice, 2, '.', '') ?>"><span class="money-value"><?= number_format((float) $reservationPrice, 2) ?> TND</span></td>
+                            <td data-sort-value="<?= $pointsEstimes ?>"><span class="money-value"><?= number_format($pointsEstimes, 0, '.', ' ') ?> pts</span></td>
                             <td>
-                                <?php if ($paymentDeclared): ?>
-                                    <span class="compact-payment is-declared">Déclaré</span>
+                                <?php if ($pointsGagnes > 0): ?>
+                                    <span class="compact-payment is-declared"><?= number_format($pointsGagnes, 0, '.', ' ') ?> pts</span>
                                 <?php else: ?>
-                                    <span class="compact-payment">Non applicable</span>
+                                    <span class="compact-payment">En attente</span>
                                 <?php endif; ?>
                             </td>
                             <td>

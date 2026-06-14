@@ -103,6 +103,7 @@ class AdminController
             'trajets' => $this->trajetModel->count(),
             'reservations' => $this->resModel->count(),
         ];
+        $detailedStats = $this->userModel->getDashboardStats();
 
         require_once ROOT_PATH . '/views/admin/dashboard.php';
     }
@@ -275,9 +276,20 @@ class AdminController
         ];
 
         $traceStats = $this->resModel->getTraceabilityStats();
-        $reservationRows = $this->resModel->getTraceabilityRows($reservationFilters);
-        $tripRows = $this->trajetModel->getTraceabilityRows($tripFilters);
-        $auditRows = $this->auditLog->search($auditFilters);
+        
+        require_once ROOT_PATH . '/core/PaginationHelper.php';
+        
+        $allReservationRows = $this->resModel->getTraceabilityRows($reservationFilters);
+        $resPagination = new PaginationHelper(count($allReservationRows), 15, 'p_res', 'l_res');
+        $reservationRows = array_slice($allReservationRows, $resPagination->offset, $resPagination->limit);
+        
+        $allTripRows = $this->trajetModel->getTraceabilityRows($tripFilters);
+        $tripPagination = new PaginationHelper(count($allTripRows), 15, 'p_trip', 'l_trip');
+        $tripRows = array_slice($allTripRows, $tripPagination->offset, $tripPagination->limit);
+        
+        $allAuditRows = $this->auditLog->search($auditFilters);
+        $auditPagination = new PaginationHelper(count($allAuditRows), 15, 'p_audit', 'l_audit');
+        $auditRows = array_slice($allAuditRows, $auditPagination->offset, $auditPagination->limit);
 
         require_once ROOT_PATH . '/views/admin/traceability.php';
     }
@@ -350,7 +362,7 @@ class AdminController
 
         $prixParKmRaw = trim((string) ($_POST['prix_par_km'] ?? ''));
         if ($prixParKmRaw === '' || !is_numeric($prixParKmRaw) || (float) $prixParKmRaw <= 0) {
-            $this->flash('error', 'Tarif kilométrique invalide.');
+            $this->flash('error', 'Barème de points invalide (doit être un nombre positif).');
             $this->redirect(BASE_URL . '/index.php?page=admin&action=settings');
         }
 
@@ -365,9 +377,9 @@ class AdminController
                 'setting_key' => 'prix_par_km',
                 'new_value' => $prixParKm,
             ]);
-            $this->flash('success', 'Tarif kilométrique mis à jour avec succès.');
+            $this->flash('success', 'Barème de points mis à jour : ' . (int) $prixParKm . ' pts/km.');
         } else {
-            $this->flash('error', 'Impossible de mettre à jour le tarif kilométrique.');
+            $this->flash('error', 'Impossible de mettre à jour le barème de points.');
         }
 
         $this->redirect(BASE_URL . '/index.php?page=admin&action=settings');
